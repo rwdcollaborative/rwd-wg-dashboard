@@ -16,6 +16,7 @@ library(plotly)
 library(lubridate)
 library(tidyr)
 library(scales)
+library(RColorBrewer)
 
 # Disable authentication for public sheets
 gs4_deauth()
@@ -106,9 +107,8 @@ org_counts <- data %>%
   head(15) %>%
   mutate(Organization = reorder(Organization, n))
 
-p1 <- ggplot(org_counts, aes(x = n, y = Organization)) +
+p1 <- ggplot(org_counts, aes(x = n, y = Organization, text = paste0(Organization, ": ", n))) +
   geom_col(fill = "#3498db", alpha = 0.8) +
-  geom_text(aes(label = n), hjust = -0.2, size = 4) +
   labs(
     title = "Top 15 Organizations by Resource Count",
     x = "Number of Resources",
@@ -118,11 +118,10 @@ p1 <- ggplot(org_counts, aes(x = n, y = Organization)) +
   theme(
     plot.title = element_text(face = "bold", size = 16),
     panel.grid.major.y = element_blank()
-  ) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.1)))
+  )
 
-ggplotly(p1, tooltip = c("y", "x")) %>%
-  layout(hovermode = "closest")
+ggplotly(p1, tooltip = "text") %>%
+  layout(hovermode = "y unified")
 ```
 :::
 
@@ -141,10 +140,9 @@ rwd_types <- data %>%
   head(12) %>%
   mutate(`RWD Type` = reorder(`RWD Type`, n))
 
-p2 <- ggplot(rwd_types, aes(x = n, y = `RWD Type`, fill = n)) +
+p2 <- ggplot(rwd_types, aes(x = n, y = `RWD Type`, fill = n, text = paste0(`RWD Type`, ": ", n))) +
   geom_col() +
   scale_fill_gradient(low = "#3498db", high = "#2c3e50") +
-  geom_text(aes(label = n), hjust = -0.2, size = 4) +
   labs(
     title = "Resources by RWD Type",
     x = "Count",
@@ -155,11 +153,10 @@ p2 <- ggplot(rwd_types, aes(x = n, y = `RWD Type`, fill = n)) +
     plot.title = element_text(face = "bold", size = 16),
     legend.position = "none",
     panel.grid.major.y = element_blank()
-  ) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))
+  )
 
-ggplotly(p2, tooltip = c("y", "x")) %>%
-  layout(hovermode = "closest")
+ggplotly(p2, tooltip = "text") %>%
+  layout(hovermode = "y unified", showlegend = FALSE)
 ```
 :::
 
@@ -178,9 +175,8 @@ topics <- data %>%
   head(15) %>%
   mutate(Topic = reorder(Topic, n))
 
-p3 <- ggplot(topics, aes(x = n, y = Topic)) +
+p3 <- ggplot(topics, aes(x = n, y = Topic, text = paste0(Topic, ": ", n))) +
   geom_col(fill = "#27ae60", alpha = 0.8) +
-  geom_text(aes(label = n), hjust = -0.2, size = 4) +
   labs(
     title = "Top 15 Topics",
     x = "Number of Resources",
@@ -190,11 +186,10 @@ p3 <- ggplot(topics, aes(x = n, y = Topic)) +
   theme(
     plot.title = element_text(face = "bold", size = 16),
     panel.grid.major.y = element_blank()
-  ) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.1)))
+  )
 
-ggplotly(p3, tooltip = c("y", "x")) %>%
-  layout(hovermode = "closest")
+ggplotly(p3, tooltip = "text") %>%
+  layout(hovermode = "y unified")
 ```
 :::
 
@@ -209,24 +204,21 @@ ggplotly(p3, tooltip = c("y", "x")) %>%
 availability <- data %>%
   filter(!is.na(Availability) & Availability != "") %>%
   separate_rows(Availability, sep = ",\\s*") %>%
-  count(Availability, sort = TRUE)
+  count(Availability, sort = TRUE) %>%
+  mutate(Availability = reorder(Availability, n))
 
-p4 <- ggplot(availability, aes(x = "", y = n, fill = Availability)) +
-  geom_col(width = 1, color = "white") +
-  coord_polar("y") +
-  scale_fill_brewer(palette = "Set3") +
-  labs(
-    title = "Resources by Availability",
-    fill = "Availability"
-  ) +
-  theme_void(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
-    legend.position = "right"
-  )
-
-ggplotly(p4) %>%
-  layout(showlegend = TRUE)
+# Use native plotly for better pie chart
+plot_ly(availability, 
+        labels = ~Availability, 
+        values = ~n, 
+        type = 'pie',
+        textposition = 'inside',
+        textinfo = 'label+percent',
+        marker = list(colors = RColorBrewer::brewer.pal(n = nrow(availability), name = "Set3"))) %>%
+  layout(title = list(text = "Resources by Availability", 
+                      font = list(size = 16, family = "sans-serif")),
+         showlegend = TRUE,
+         legend = list(orientation = "v"))
 ```
 :::
 

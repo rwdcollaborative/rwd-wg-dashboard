@@ -57,6 +57,7 @@ jobs:
             DT
             rmarkdown
             knitr
+            RColorBrewer
 
       - name: Render Quarto Project
         run: quarto render
