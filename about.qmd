@@ -4,44 +4,70 @@ title: "About"
 
 ## About This Dashboard
 
-This dashboard visualizes data from the Real World Data (RWD) Working Group. The data is sourced directly from a Google Sheets document and displayed using interactive visualizations built with R and Quarto.
+This dashboard visualizes the Real World Data (RWD) Working Group resource inventory. The data is sourced directly from a collaborative Google Sheets document and displayed using interactive visualizations built with R and Quarto.
 
-### Features
+### Purpose
 
-- **Real-time Data**: The dashboard loads data directly from Google Sheets on each page visit
+The RWD Working Group maintains a comprehensive inventory of resources related to real-world data in clinical and translational research. This dashboard provides:
+
+- **Quick Overview**: Key metrics about the inventory
+- **Visual Analytics**: Interactive charts showing distribution by organization, RWD type, topic, and availability
+- **Searchable Table**: Full inventory with filtering and export capabilities
+
+### Key Features
+
+- **Real-time Data**: The dashboard loads data directly from Google Sheets on each page visit, ensuring you always see the latest information
 - **Interactive Visualizations**: Explore the data with interactive charts powered by Plotly
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Professional Styling**: Clean, modern interface with custom theming
+- **Export Capabilities**: Download filtered data as CSV or Excel
+- **No Maintenance Required**: Automatically updates when the source sheet is modified
+
+### What's Tracked
+
+The dashboard focuses on four key dimensions:
+
+1. **Organization** - Which institutions/organizations are contributing resources
+2. **RWD Type** - Types of real-world data (EHR, claims, registries, etc.)
+3. **Topic** - Subject areas covered (quality, privacy, methods, etc.)
+4. **Availability** - How resources can be accessed
 
 ### Technology Stack
 
-- **Quarto**: Document publishing system
+- **Quarto**: Modern document publishing system
 - **R**: Statistical computing and graphics
-  - `googlesheets4`: Google Sheets integration
-  - `ggplot2`: Data visualization
-  - `plotly`: Interactive charts
-  - `dplyr`: Data manipulation
-  - `DT`: Interactive tables
-- **GitHub Pages**: Static site hosting
+  - `googlesheets4`: Direct Google Sheets integration
+  - `ggplot2` + `plotly`: Interactive data visualization
+  - `dplyr` + `tidyr`: Data manipulation
+  - `DT`: Interactive tables with search and export
+- **GitHub Pages**: Free, reliable static site hosting
+- **GitHub Actions**: Automated deployment
 
 ### Data Source
 
-The data is stored in a public Google Sheets document and loaded on each page visit. This ensures you always see the most up-to-date information without needing to manually rebuild the site.
+The inventory is maintained in a [public Google Sheets document](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit). The dashboard fetches fresh data on each page load, so any updates to the sheet are immediately reflected here.
 
-### Getting Started
+### Contributing
 
-To customize this dashboard for your own data:
+To add resources to the inventory:
 
-1. Update the `SHEET_URL` variable in `index.qmd` with your Google Sheets URL
-2. Ensure your Google Sheet is set to "Anyone with the link can view"
-3. Modify the visualizations to match your data structure
-4. Push changes to GitHub to automatically deploy
+1. Visit the [Google Sheets inventory](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit)
+2. Follow the instructions in the "Instructions" tab
+3. Add your resource information to the "Inventory" tab
+4. The dashboard will automatically reflect your additions on the next page load
 
 ### Questions or Issues?
 
-If you have questions about the data or encounter any issues with the dashboard, please reach out to the working group administrators.
+If you have questions about the data or encounter any issues with the dashboard, please reach out to the RWD Working Group administrators.
+
+### Technical Details
+
+This dashboard is:
+- Hosted on GitHub Pages
+- Automatically deployed via GitHub Actions
+- Open source (see repository for code)
+- Built with reproducible R code
 
 ---
 
-*This dashboard is maintained by the RWD Working Group and deployed automatically via GitHub Actions.*
+*Dashboard maintained by the CTSA RWD Working Group*
 

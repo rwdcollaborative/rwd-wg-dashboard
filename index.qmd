@@ -22,36 +22,43 @@ gs4_deauth()
 ```
 
 ::: {.dashboard-header}
-# Real World Data Working Group
+# RWD Working Group Resource Inventory
 ### Interactive Dashboard
 
-Welcome to the RWD Working Group dashboard. This page provides real-time insights from our collaborative data.
+Explore the comprehensive inventory of Real World Data resources from across CTSA institutions. This dashboard provides real-time insights from our collaborative Google Sheets inventory.
 :::
 
 ```{r load-data}
 #| cache: false
 
-# Replace this URL with your Google Sheets URL
-# For a public sheet, use the full URL or the sheet ID
-SHEET_URL <- "YOUR_GOOGLE_SHEET_URL_HERE"
+# RWD Working Group Inventory Google Sheet
+SHEET_URL <- "https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit?gid=0#gid=0"
 
-# Example: For testing, we'll create sample data
-# Remove this and uncomment the googlesheets4 code below when ready
-data <- data.frame(
-  date = seq(as.Date("2024-01-01"), as.Date("2024-11-14"), by = "week"),
-  metric1 = cumsum(rnorm(46, mean = 5, sd = 2)),
-  metric2 = sample(50:150, 46, replace = TRUE),
-  category = sample(c("Type A", "Type B", "Type C"), 46, replace = TRUE),
-  status = sample(c("Active", "Pending", "Complete"), 46, replace = TRUE)
-)
-
-# UNCOMMENT THIS to load from Google Sheets:
-# tryCatch({
-#   data <- read_sheet(SHEET_URL, sheet = 1)
-# }, error = function(e) {
-#   stop(paste("Error loading data from Google Sheets:", e$message, 
-#              "\nMake sure the sheet is public and the URL is correct."))
-# })
+# Load data from Google Sheets
+tryCatch({
+  # Read the Inventory tab (skip first row which is headers grouping)
+  data_raw <- read_sheet(SHEET_URL, sheet = "Inventory", skip = 1)
+  
+  # Clean up the data - remove completely empty rows
+  data <- data_raw %>%
+    filter(!is.na(Title) & Title != "" & Title != "Title") %>%
+    # Select key columns of interest
+    select(
+      Title,
+      Type,
+      Topic,
+      Organization,
+      `RWD Type`,
+      `URL(s)`,
+      Description,
+      `Intended Audience`,
+      Availability = starts_with("Availability")
+    )
+  
+}, error = function(e) {
+  stop(paste("Error loading data from Google Sheets:", e$message, 
+             "\nMake sure the sheet is public and the URL is correct."))
+})
 
 # Get last update time
 last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
@@ -62,131 +69,210 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 ::: {.metrics-grid}
 
 ::: {.metric-card}
-<div class="metric-label">Total Records</div>
+<div class="metric-label">Total Resources</div>
 <div class="metric-value">`r nrow(data)`</div>
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Active Items</div>
-<div class="metric-value">`r sum(data$status == "Active", na.rm = TRUE)`</div>
+<div class="metric-label">Unique Organizations</div>
+<div class="metric-value">`r length(unique(data$Organization[!is.na(data$Organization)]))`</div>
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Completion Rate</div>
-<div class="metric-value">`r scales::percent(sum(data$status == "Complete", na.rm = TRUE) / nrow(data), accuracy = 0.1)`</div>
+<div class="metric-label">Resource Types</div>
+<div class="metric-value">`r length(unique(data$Type[!is.na(data$Type)]))`</div>
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Average Metric 2</div>
-<div class="metric-value">`r round(mean(data$metric2, na.rm = TRUE), 1)`</div>
+<div class="metric-label">Topics Covered</div>
+<div class="metric-value">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
 :::
 
 :::
 
 ## Visualizations
 
-### Metric 1 Trend Over Time
+### Resources by Organization
 
 ::: {.chart-container}
-```{r plot-trend}
+```{r plot-organizations}
 #| fig-width: 10
-#| fig-height: 5
+#| fig-height: 6
 
-p1 <- ggplot(data, aes(x = date, y = metric1)) +
-  geom_line(color = "#3498db", size = 1.2) +
-  geom_point(color = "#2c3e50", size = 2) +
+# Count resources by organization (top 15)
+org_counts <- data %>%
+  filter(!is.na(Organization) & Organization != "") %>%
+  count(Organization, sort = TRUE) %>%
+  head(15) %>%
+  mutate(Organization = reorder(Organization, n))
+
+p1 <- ggplot(org_counts, aes(x = n, y = Organization)) +
+  geom_col(fill = "#3498db", alpha = 0.8) +
+  geom_text(aes(label = n), hjust = -0.2, size = 4) +
   labs(
-    title = "Metric 1 Progression",
-    x = "Date",
-    y = "Metric 1 Value"
+    title = "Top 15 Organizations by Resource Count",
+    x = "Number of Resources",
+    y = ""
   ) +
   theme_minimal(base_size = 14) +
   theme(
     plot.title = element_text(face = "bold", size = 16),
-    panel.grid.minor = element_blank()
-  )
-
-ggplotly(p1, tooltip = c("x", "y")) %>%
-  layout(hovermode = "x unified")
-```
-:::
-
-### Distribution by Category
-
-::: {.chart-container}
-```{r plot-categories}
-#| fig-width: 10
-#| fig-height: 5
-
-category_summary <- data %>%
-  count(category, status) %>%
-  group_by(category) %>%
-  mutate(percentage = n / sum(n) * 100)
-
-p2 <- ggplot(category_summary, aes(x = category, y = n, fill = status)) +
-  geom_col(position = "dodge") +
-  scale_fill_manual(values = c("Active" = "#3498db", 
-                                "Pending" = "#f39c12", 
-                                "Complete" = "#27ae60")) +
-  labs(
-    title = "Status Distribution by Category",
-    x = "Category",
-    y = "Count",
-    fill = "Status"
+    panel.grid.major.y = element_blank()
   ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    legend.position = "top"
-  )
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1)))
 
-ggplotly(p2) %>%
+ggplotly(p1, tooltip = c("y", "x")) %>%
   layout(hovermode = "closest")
 ```
 :::
 
-### Metric 2 Distribution
+### Distribution by RWD Type
 
 ::: {.chart-container}
-```{r plot-histogram}
+```{r plot-rwd-types}
 #| fig-width: 10
 #| fig-height: 5
 
-p3 <- ggplot(data, aes(x = metric2)) +
-  geom_histogram(bins = 20, fill = "#3498db", color = "white", alpha = 0.8) +
+# Parse and count RWD Types (they may be comma-separated)
+rwd_types <- data %>%
+  filter(!is.na(`RWD Type`) & `RWD Type` != "") %>%
+  separate_rows(`RWD Type`, sep = ",\\s*") %>%
+  count(`RWD Type`, sort = TRUE) %>%
+  head(12) %>%
+  mutate(`RWD Type` = reorder(`RWD Type`, n))
+
+p2 <- ggplot(rwd_types, aes(x = n, y = `RWD Type`, fill = n)) +
+  geom_col() +
+  scale_fill_gradient(low = "#3498db", high = "#2c3e50") +
+  geom_text(aes(label = n), hjust = -0.2, size = 4) +
   labs(
-    title = "Metric 2 Distribution",
-    x = "Metric 2 Value",
-    y = "Frequency"
+    title = "Resources by RWD Type",
+    x = "Count",
+    y = ""
   ) +
   theme_minimal(base_size = 14) +
   theme(
-    plot.title = element_text(face = "bold", size = 16)
-  )
+    plot.title = element_text(face = "bold", size = 16),
+    legend.position = "none",
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))
 
-ggplotly(p3)
+ggplotly(p2, tooltip = c("y", "x")) %>%
+  layout(hovermode = "closest")
 ```
 :::
 
-## Data Table
+### Topics Coverage
+
+::: {.chart-container}
+```{r plot-topics}
+#| fig-width: 10
+#| fig-height: 6
+
+# Parse and count Topics (they may be comma-separated)
+topics <- data %>%
+  filter(!is.na(Topic) & Topic != "") %>%
+  separate_rows(Topic, sep = ",\\s*") %>%
+  count(Topic, sort = TRUE) %>%
+  head(15) %>%
+  mutate(Topic = reorder(Topic, n))
+
+p3 <- ggplot(topics, aes(x = n, y = Topic)) +
+  geom_col(fill = "#27ae60", alpha = 0.8) +
+  geom_text(aes(label = n), hjust = -0.2, size = 4) +
+  labs(
+    title = "Top 15 Topics",
+    x = "Number of Resources",
+    y = ""
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1)))
+
+ggplotly(p3, tooltip = c("y", "x")) %>%
+  layout(hovermode = "closest")
+```
+:::
+
+### Availability Status
+
+::: {.chart-container}
+```{r plot-availability}
+#| fig-width: 10
+#| fig-height: 5
+
+# Count by availability
+availability <- data %>%
+  filter(!is.na(Availability) & Availability != "") %>%
+  separate_rows(Availability, sep = ",\\s*") %>%
+  count(Availability, sort = TRUE)
+
+p4 <- ggplot(availability, aes(x = "", y = n, fill = Availability)) +
+  geom_col(width = 1, color = "white") +
+  coord_polar("y") +
+  scale_fill_brewer(palette = "Set3") +
+  labs(
+    title = "Resources by Availability",
+    fill = "Availability"
+  ) +
+  theme_void(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    legend.position = "right"
+  )
+
+ggplotly(p4) %>%
+  layout(showlegend = TRUE)
+```
+:::
+
+## Resource Inventory Table
 
 ::: {.chart-container}
 ```{r data-table}
 library(DT)
 
-data %>%
-  arrange(desc(date)) %>%
-  datatable(
-    options = list(
-      pageLength = 10,
-      scrollX = TRUE,
-      dom = 'Bfrtip',
-      buttons = c('copy', 'csv', 'excel')
-    ),
-    filter = "top",
-    class = 'cell-border stripe',
-    rownames = FALSE
-  )
+# Create a display version with clickable URLs
+data_display <- data %>%
+  mutate(
+    # Make URLs clickable if they exist
+    URL = ifelse(!is.na(`URL(s)`) & `URL(s)` != "",
+                 sprintf('<a href="%s" target="_blank">Link</a>', `URL(s)`),
+                 ""),
+    # Truncate description for display
+    Description_Short = ifelse(!is.na(Description),
+                               substr(Description, 1, 100),
+                               "")
+  ) %>%
+  select(Title, Organization, Type, `RWD Type`, Topic, Availability, URL, Description_Short) %>%
+  arrange(Organization, Title)
+
+datatable(
+  data_display,
+  escape = FALSE,  # Allow HTML in URL column
+  options = list(
+    pageLength = 15,
+    scrollX = TRUE,
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel'),
+    columnDefs = list(
+      list(width = '250px', targets = 0),  # Title
+      list(width = '150px', targets = 1),  # Organization
+      list(width = '100px', targets = c(2, 3, 5)),  # Type, RWD Type, Availability
+      list(width = '150px', targets = 4),  # Topic
+      list(width = '50px', targets = 6),   # URL
+      list(width = '300px', targets = 7)   # Description
+    )
+  ),
+  filter = "top",
+  class = 'cell-border stripe hover',
+  rownames = FALSE,
+  colnames = c('Title', 'Organization', 'Type', 'RWD Type', 'Topic', 'Availability', 'URL', 'Description')
+)
 ```
 :::
 
