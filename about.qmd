@@ -2,25 +2,74 @@
 title: "About"
 ---
 
+## Real World Data Workforce Development Across the Translational Spectrum
+
+### Overview
+
+The Real World Data (RWD) Workforce Development Across the Translational Spectrum Working Group will create a RWD needs assessment, resource inventory, and design a generalizable competency framework. RWD topics are expected to include, but are not limited to, data collection and provenance, clinical data models, evaluation of bias in the data, and best practices and analytic approaches that support ethical research analytics using RWD (including AI and machine learning modeling) and clinical decision support tools. This Working Group will also establish a training community that fosters knowledge and training artifact exchange.
+
+### Group Goals
+
+::: {.goals-grid}
+
+::: {.goal-card}
+**1. Inventory RWD Training Needs**
+
+Assess training needs across stakeholder communities, including: K and T scholars, early career researchers, CTSA and affiliated institutional leadership, local biomedical informatics faculty and staff, and other domain experts including data scientists and clinical practitioners.
+:::
+
+::: {.goal-card}
+**2. Develop Competency Framework**
+
+Develop a RWD analytics competency framework and make recommendations for how it can be used in a variety of translational contexts and communities.
+:::
+
+::: {.goal-card}
+**3. Inventory Educational Assets**
+
+Inventory RWD educational assets and opportunities across the CTSA program in collaboration with T, K, R25, AMIA, and other programs to increase educational collaboration opportunities and promote higher-quality, accessible RWD training for diverse trainees, contexts, and institutions.
+:::
+
+::: {.goal-card}
+**4. Establish Formal Governance**
+
+Develop a mature RWD Education Collaboration into a formal governance and coordination structure that welcomes a variety of contributors and users from multiple CTSA affiliated hubs and organizations.
+:::
+
+:::
+
+### Meetings
+
+This group meets on the **first Thursday of each month** from **12:00 – 1:00 PM Eastern time**.
+
+For meeting agendas, presentations, and summaries, visit the [CTSA CCOS group page](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum).
+
+### Communication Channels
+
+- **Slack**: Join our community at [RWD Collaborative Slack](https://join.slack.com/t/rwdcollaborative/shared_invite/zt-356k24nky-4RMShCfgf5e3CUqX_LQzFQ)
+- **Mailing List**: CCOS-managed distribution list for meeting invitations and group updates
+- **Collaborative Space**: [Sign up for access](https://form.fillout.com/t/gN941wEcSCus) to our externally hosted collaborative workspace
+
+### Contact Information
+
+For more information or to join this working group, please contact:
+
+**Lenore Roca**  
+CCOS Meeting Coordinator  
+[Contact via CCOS](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum)
+
+---
+
 ## About This Dashboard
 
-This dashboard visualizes the Real World Data (RWD) Working Group resource inventory. The data is sourced directly from a collaborative Google Sheets document and displayed using interactive visualizations built with R and Quarto.
+This dashboard visualizes the RWD Working Group resource inventory collected as part of our educational asset inventory initiative. The data is sourced directly from a collaborative Google Sheets document and displayed using interactive visualizations built with R and Quarto.
 
-### Purpose
-
-The RWD Working Group maintains a comprehensive inventory of resources related to real-world data in clinical and translational research. This dashboard provides:
-
-- **Quick Overview**: Key metrics about the inventory
-- **Visual Analytics**: Interactive charts showing distribution by organization, RWD type, topic, and availability
-- **Searchable Table**: Full inventory with filtering and export capabilities
-
-### Key Features
+### Dashboard Features
 
 - **Real-time Data**: The dashboard loads data directly from Google Sheets on each page visit, ensuring you always see the latest information
 - **Interactive Visualizations**: Explore the data with interactive charts powered by Plotly
+- **Searchable Table**: Full inventory with filtering and export capabilities
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Export Capabilities**: Download filtered data as CSV or Excel
-- **No Maintenance Required**: Automatically updates when the source sheet is modified
 
 ### What's Tracked
 
@@ -31,22 +80,7 @@ The dashboard focuses on four key dimensions:
 3. **Topic** - Subject areas covered (quality, privacy, methods, etc.)
 4. **Availability** - How resources can be accessed
 
-### Technology Stack
-
-- **Quarto**: Modern document publishing system
-- **R**: Statistical computing and graphics
-  - `googlesheets4`: Direct Google Sheets integration
-  - `ggplot2` + `plotly`: Interactive data visualization
-  - `dplyr` + `tidyr`: Data manipulation
-  - `DT`: Interactive tables with search and export
-- **GitHub Pages**: Free, reliable static site hosting
-- **GitHub Actions**: Automated deployment
-
-### Data Source
-
-The inventory is maintained in a [public Google Sheets document](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit). The dashboard fetches fresh data on each page load, so any updates to the sheet are immediately reflected here.
-
-### Contributing
+### Contributing to the Inventory
 
 To add resources to the inventory:
 
@@ -55,19 +89,16 @@ To add resources to the inventory:
 3. Add your resource information to the "Inventory" tab
 4. The dashboard will automatically reflect your additions on the next page load
 
-### Questions or Issues?
+### Technology Stack
 
-If you have questions about the data or encounter any issues with the dashboard, please reach out to the RWD Working Group administrators.
-
-### Technical Details
-
-This dashboard is:
-- Hosted on GitHub Pages
-- Automatically deployed via GitHub Actions
-- Open source (see repository for code)
-- Built with reproducible R code
+- **Quarto**: Modern document publishing system
+- **R**: Statistical computing and graphics (googlesheets4, plotly, dplyr, DT)
+- **GitHub Pages**: Free, reliable static site hosting
+- **GitHub Actions**: Automated deployment
 
 ---
 
 *Dashboard maintained by the CTSA RWD Working Group*
+
+*Working group information from [CTSA CCOS](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum)*
 

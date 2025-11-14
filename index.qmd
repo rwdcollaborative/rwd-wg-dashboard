@@ -100,12 +100,27 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 #| fig-width: 10
 #| fig-height: 6
 
-# Count resources by organization (top 15)
-org_counts <- data %>%
+# Count resources by organization and group single-resource institutions
+org_counts_raw <- data %>%
   filter(!is.na(Organization) & Organization != "") %>%
-  count(Organization, sort = TRUE) %>%
-  head(15) %>%
+  count(Organization, sort = TRUE)
+
+# Separate organizations with 1 resource vs. more than 1
+org_counts <- org_counts_raw %>%
+  mutate(Organization = ifelse(n == 1, "Other (single resource)", Organization)) %>%
+  group_by(Organization) %>%
+  summarise(n = sum(n), .groups = 'drop') %>%
   arrange(n)  # Sort for plotly
+
+# Count how many institutions are in "Other"
+other_count <- sum(org_counts_raw$n == 1)
+other_label <- paste0("Other (", other_count, " institutions)")
+
+# Update the label for "Other"
+org_counts <- org_counts %>%
+  mutate(Organization = ifelse(Organization == "Other (single resource)", 
+                                other_label, 
+                                Organization))
 
 plot_ly(org_counts, 
         x = ~n, 
@@ -115,12 +130,12 @@ plot_ly(org_counts,
         marker = list(color = '#3498db'),
         text = ~paste0(Organization, ": ", n, " resources"),
         hoverinfo = 'text') %>%
-  layout(title = list(text = "Top 15 Organizations by Resource Count",
+  layout(title = list(text = "Organizations by Resource Count",
                       font = list(size = 16)),
          xaxis = list(title = "Number of Resources"),
          yaxis = list(title = "", categoryorder = "total ascending"),
          hovermode = "closest",
-         margin = list(l = 150))
+         margin = list(l = 200))
 ```
 :::
 

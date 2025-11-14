@@ -16,6 +16,35 @@ body {
   margin-bottom: 2rem;
 }
 
+/* Goals grid for About page */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.goal-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #3498db;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.goal-card strong {
+  display: block;
+  color: #2c3e50;
+  font-size: 1.1em;
+  margin-bottom: 0.5rem;
+}
+
 /* Chart styling */
 .plotly {
   width: 100%;
