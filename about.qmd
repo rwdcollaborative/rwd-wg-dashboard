@@ -64,22 +64,6 @@ CCOS Meeting Coordinator
 
 This dashboard visualizes the RWD Working Group resource inventory collected as part of our educational asset inventory initiative. The data is sourced directly from a collaborative Google Sheets document and displayed using interactive visualizations built with R and Quarto.
 
-### Dashboard Features
-
-- **Real-time Data**: The dashboard loads data directly from Google Sheets on each page visit, ensuring you always see the latest information
-- **Interactive Visualizations**: Explore the data with interactive charts powered by Plotly
-- **Searchable Table**: Full inventory with filtering and export capabilities
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-
-### What's Tracked
-
-The dashboard focuses on four key dimensions:
-
-1. **Organization** - Which institutions/organizations are contributing resources
-2. **RWD Type** - Types of real-world data (EHR, claims, registries, etc.)
-3. **Topic** - Subject areas covered (quality, privacy, methods, etc.)
-4. **Availability** - How resources can be accessed
-
 ### Contributing to the Inventory
 
 To add resources to the inventory:

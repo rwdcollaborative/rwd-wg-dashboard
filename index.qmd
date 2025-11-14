@@ -20,6 +20,20 @@ library(RColorBrewer)
 
 # Disable authentication for public sheets
 gs4_deauth()
+
+# Helper function to parse CSV-style quoted strings from Google Sheets
+parse_csv_string <- function(x) {
+  # Handle NA or empty strings
+  if (is.na(x) || x == "") return(character(0))
+  # Split on commas that are not inside quotes
+  # This regex splits on commas not inside quoted sections
+  parsed <- unlist(strsplit(x, ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", perl = TRUE))
+  # Remove quotes and trim whitespace
+  parsed <- gsub('^\\s*"?|"?\\s*$', '', parsed)
+  # Handle escaped quotes
+  parsed <- gsub('\\\\"', '"', parsed)
+  return(trimws(parsed))
+}
 ```
 
 ::: {.dashboard-header}
@@ -100,40 +114,46 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 #| fig-width: 10
 #| fig-height: 6
 
-# Count resources by organization and group single-resource institutions
+# Count resources by organization
 org_counts_raw <- data %>%
   filter(!is.na(Organization) & Organization != "") %>%
   count(Organization, sort = TRUE)
 
 # Separate organizations with 1 resource vs. more than 1
 org_counts <- org_counts_raw %>%
-  mutate(Organization = ifelse(n == 1, "Other (single resource)", Organization)) %>%
-  group_by(Organization) %>%
-  summarise(n = sum(n), .groups = 'drop') %>%
-  arrange(n)  # Sort for plotly
+  mutate(DisplayOrg = ifelse(n == 1, "Other", Organization)) %>%
+  group_by(DisplayOrg) %>%
+  summarise(n = sum(n), .groups = 'drop')
 
-# Count how many institutions are in "Other"
+# Count how many institutions are in "Other" and update label
 other_count <- sum(org_counts_raw$n == 1)
-other_label <- paste0("Other (", other_count, " institutions)")
+other_row <- org_counts %>% filter(DisplayOrg == "Other")
 
-# Update the label for "Other"
-org_counts <- org_counts %>%
-  mutate(Organization = ifelse(Organization == "Other (single resource)", 
-                                other_label, 
-                                Organization))
+# Separate "Other" from the rest and sort
+org_counts_without_other <- org_counts %>% 
+  filter(DisplayOrg != "Other") %>%
+  arrange(n)  # Sort ascending by count
+
+org_counts_other <- org_counts %>% 
+  filter(DisplayOrg == "Other") %>%
+  mutate(DisplayOrg = paste0("Other (", other_count, " institutions)"))
+
+# Put "Other" at the bottom (first in the list for ascending order)
+org_counts <- bind_rows(org_counts_other, org_counts_without_other)
 
 plot_ly(org_counts, 
         x = ~n, 
-        y = ~Organization, 
+        y = ~DisplayOrg, 
         type = 'bar',
         orientation = 'h',
         marker = list(color = '#3498db'),
-        text = ~paste0(Organization, ": ", n, " resources"),
+        text = ~paste0(DisplayOrg, ": ", n, " resources"),
         hoverinfo = 'text') %>%
   layout(title = list(text = "Organizations by Resource Count",
                       font = list(size = 16)),
          xaxis = list(title = "Number of Resources"),
-         yaxis = list(title = "", categoryorder = "total ascending"),
+         yaxis = list(title = "", categoryorder = "array", 
+                      categoryarray = org_counts$DisplayOrg),
          hovermode = "closest",
          margin = list(l = 200))
 ```
@@ -146,11 +166,18 @@ plot_ly(org_counts,
 #| fig-width: 10
 #| fig-height: 5
 
-# Parse and count RWD Types (they may be comma-separated)
-rwd_types <- data %>%
+# Parse and count RWD Types (they may be comma-separated with quotes)
+rwd_types_parsed <- data %>%
   filter(!is.na(`RWD Type`) & `RWD Type` != "") %>%
-  separate_rows(`RWD Type`, sep = ",\\s*") %>%
-  count(`RWD Type`, sort = TRUE) %>%
+  rowwise() %>%
+  mutate(RWD_list = list(parse_csv_string(`RWD Type`))) %>%
+  ungroup() %>%
+  select(-`RWD Type`) %>%  # Remove original column before unnesting
+  unnest(RWD_list)
+
+rwd_types <- rwd_types_parsed %>%
+  count(RWD_list, sort = TRUE, name = "n") %>%
+  rename(`RWD Type` = RWD_list) %>%
   head(12) %>%
   arrange(n)  # Sort for plotly
 
@@ -182,11 +209,18 @@ plot_ly(rwd_types,
 #| fig-width: 10
 #| fig-height: 6
 
-# Parse and count Topics (they may be comma-separated)
-topics <- data %>%
+# Parse and count Topics (they may be comma-separated with quotes)
+topics_parsed <- data %>%
   filter(!is.na(Topic) & Topic != "") %>%
-  separate_rows(Topic, sep = ",\\s*") %>%
-  count(Topic, sort = TRUE) %>%
+  rowwise() %>%
+  mutate(Topic_list = list(parse_csv_string(Topic))) %>%
+  ungroup() %>%
+  select(-Topic) %>%  # Remove original column before unnesting
+  unnest(Topic_list)
+
+topics <- topics_parsed %>%
+  count(Topic_list, sort = TRUE, name = "n") %>%
+  rename(Topic = Topic_list) %>%
   head(15) %>%
   arrange(n)  # Sort for plotly
 
@@ -214,10 +248,18 @@ plot_ly(topics,
 #| fig-width: 10
 #| fig-height: 5
 
-# Count by availability
-availability <- data %>%
+# Count by availability - handle Google Sheets CSV-style quoting
+availability_parsed <- data %>%
   filter(!is.na(Availability) & Availability != "") %>%
-  separate_rows(Availability, sep = ",\\s*") %>%
+  rowwise() %>%
+  mutate(Availability_list = list(parse_csv_string(Availability))) %>%
+  ungroup() %>%
+  select(-Availability) %>%  # Remove original column before unnesting
+  unnest(Availability_list) %>%
+  rename(Availability = Availability_list)
+
+# Count and plot
+availability <- availability_parsed %>%
   count(Availability, sort = TRUE) %>%
   mutate(Availability = reorder(Availability, n))
 
