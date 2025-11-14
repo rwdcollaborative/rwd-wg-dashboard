@@ -105,23 +105,22 @@ org_counts <- data %>%
   filter(!is.na(Organization) & Organization != "") %>%
   count(Organization, sort = TRUE) %>%
   head(15) %>%
-  mutate(Organization = reorder(Organization, n))
+  arrange(n)  # Sort for plotly
 
-p1 <- ggplot(org_counts, aes(x = n, y = Organization, text = paste0(Organization, ": ", n))) +
-  geom_col(fill = "#3498db", alpha = 0.8) +
-  labs(
-    title = "Top 15 Organizations by Resource Count",
-    x = "Number of Resources",
-    y = ""
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    panel.grid.major.y = element_blank()
-  )
-
-ggplotly(p1, tooltip = "text") %>%
-  layout(hovermode = "y unified")
+plot_ly(org_counts, 
+        x = ~n, 
+        y = ~Organization, 
+        type = 'bar',
+        orientation = 'h',
+        marker = list(color = '#3498db'),
+        text = ~paste0(Organization, ": ", n, " resources"),
+        hoverinfo = 'text') %>%
+  layout(title = list(text = "Top 15 Organizations by Resource Count",
+                      font = list(size = 16)),
+         xaxis = list(title = "Number of Resources"),
+         yaxis = list(title = "", categoryorder = "total ascending"),
+         hovermode = "closest",
+         margin = list(l = 150))
 ```
 :::
 
@@ -138,25 +137,26 @@ rwd_types <- data %>%
   separate_rows(`RWD Type`, sep = ",\\s*") %>%
   count(`RWD Type`, sort = TRUE) %>%
   head(12) %>%
-  mutate(`RWD Type` = reorder(`RWD Type`, n))
+  arrange(n)  # Sort for plotly
 
-p2 <- ggplot(rwd_types, aes(x = n, y = `RWD Type`, fill = n, text = paste0(`RWD Type`, ": ", n))) +
-  geom_col() +
-  scale_fill_gradient(low = "#3498db", high = "#2c3e50") +
-  labs(
-    title = "Resources by RWD Type",
-    x = "Count",
-    y = ""
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    legend.position = "none",
-    panel.grid.major.y = element_blank()
-  )
+# Create color gradient
+colors <- colorRampPalette(c("#3498db", "#2c3e50"))(nrow(rwd_types))
 
-ggplotly(p2, tooltip = "text") %>%
-  layout(hovermode = "y unified", showlegend = FALSE)
+plot_ly(rwd_types, 
+        x = ~n, 
+        y = ~`RWD Type`, 
+        type = 'bar',
+        orientation = 'h',
+        marker = list(color = colors),
+        text = ~paste0(`RWD Type`, ": ", n, " resources"),
+        hoverinfo = 'text') %>%
+  layout(title = list(text = "Resources by RWD Type",
+                      font = list(size = 16)),
+         xaxis = list(title = "Count"),
+         yaxis = list(title = "", categoryorder = "total ascending"),
+         hovermode = "closest",
+         showlegend = FALSE,
+         margin = list(l = 150))
 ```
 :::
 
@@ -173,23 +173,22 @@ topics <- data %>%
   separate_rows(Topic, sep = ",\\s*") %>%
   count(Topic, sort = TRUE) %>%
   head(15) %>%
-  mutate(Topic = reorder(Topic, n))
+  arrange(n)  # Sort for plotly
 
-p3 <- ggplot(topics, aes(x = n, y = Topic, text = paste0(Topic, ": ", n))) +
-  geom_col(fill = "#27ae60", alpha = 0.8) +
-  labs(
-    title = "Top 15 Topics",
-    x = "Number of Resources",
-    y = ""
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(face = "bold", size = 16),
-    panel.grid.major.y = element_blank()
-  )
-
-ggplotly(p3, tooltip = "text") %>%
-  layout(hovermode = "y unified")
+plot_ly(topics, 
+        x = ~n, 
+        y = ~Topic, 
+        type = 'bar',
+        orientation = 'h',
+        marker = list(color = '#27ae60'),
+        text = ~paste0(Topic, ": ", n, " resources"),
+        hoverinfo = 'text') %>%
+  layout(title = list(text = "Top 15 Topics",
+                      font = list(size = 16)),
+         xaxis = list(title = "Number of Resources"),
+         yaxis = list(title = "", categoryorder = "total ascending"),
+         hovermode = "closest",
+         margin = list(l = 150))
 ```
 :::
 
