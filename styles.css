@@ -1,0 +1,31 @@
+/* Additional custom styles */
+
+body {
+  background-color: #f5f7fa;
+}
+
+.quarto-title {
+  display: none; /* Hide default title if using custom header */
+}
+
+/* Responsive grid for metrics */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Chart styling */
+.plotly {
+  width: 100%;
+  height: 100%;
+}
+
+/* Loading state */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #7f8c8d;
+}
+

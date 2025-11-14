@@ -1,0 +1,47 @@
+---
+title: "About"
+---
+
+## About This Dashboard
+
+This dashboard visualizes data from the Real World Data (RWD) Working Group. The data is sourced directly from a Google Sheets document and displayed using interactive visualizations built with R and Quarto.
+
+### Features
+
+- **Real-time Data**: The dashboard loads data directly from Google Sheets on each page visit
+- **Interactive Visualizations**: Explore the data with interactive charts powered by Plotly
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
+- **Professional Styling**: Clean, modern interface with custom theming
+
+### Technology Stack
+
+- **Quarto**: Document publishing system
+- **R**: Statistical computing and graphics
+  - `googlesheets4`: Google Sheets integration
+  - `ggplot2`: Data visualization
+  - `plotly`: Interactive charts
+  - `dplyr`: Data manipulation
+  - `DT`: Interactive tables
+- **GitHub Pages**: Static site hosting
+
+### Data Source
+
+The data is stored in a public Google Sheets document and loaded on each page visit. This ensures you always see the most up-to-date information without needing to manually rebuild the site.
+
+### Getting Started
+
+To customize this dashboard for your own data:
+
+1. Update the `SHEET_URL` variable in `index.qmd` with your Google Sheets URL
+2. Ensure your Google Sheet is set to "Anyone with the link can view"
+3. Modify the visualizations to match your data structure
+4. Push changes to GitHub to automatically deploy
+
+### Questions or Issues?
+
+If you have questions about the data or encounter any issues with the dashboard, please reach out to the working group administrators.
+
+---
+
+*This dashboard is maintained by the RWD Working Group and deployed automatically via GitHub Actions.*
+

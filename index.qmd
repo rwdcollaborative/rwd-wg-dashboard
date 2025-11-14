@@ -1,0 +1,196 @@
+---
+title: "RWD Working Group Dashboard"
+format: 
+  html:
+    page-layout: full
+---
+
+```{r setup}
+#| include: false
+
+# Load required libraries
+library(googlesheets4)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+library(tidyr)
+library(scales)
+
+# Disable authentication for public sheets
+gs4_deauth()
+```
+
+::: {.dashboard-header}
+# Real World Data Working Group
+### Interactive Dashboard
+
+Welcome to the RWD Working Group dashboard. This page provides real-time insights from our collaborative data.
+:::
+
+```{r load-data}
+#| cache: false
+
+# Replace this URL with your Google Sheets URL
+# For a public sheet, use the full URL or the sheet ID
+SHEET_URL <- "YOUR_GOOGLE_SHEET_URL_HERE"
+
+# Example: For testing, we'll create sample data
+# Remove this and uncomment the googlesheets4 code below when ready
+data <- data.frame(
+  date = seq(as.Date("2024-01-01"), as.Date("2024-11-14"), by = "week"),
+  metric1 = cumsum(rnorm(46, mean = 5, sd = 2)),
+  metric2 = sample(50:150, 46, replace = TRUE),
+  category = sample(c("Type A", "Type B", "Type C"), 46, replace = TRUE),
+  status = sample(c("Active", "Pending", "Complete"), 46, replace = TRUE)
+)
+
+# UNCOMMENT THIS to load from Google Sheets:
+# tryCatch({
+#   data <- read_sheet(SHEET_URL, sheet = 1)
+# }, error = function(e) {
+#   stop(paste("Error loading data from Google Sheets:", e$message, 
+#              "\nMake sure the sheet is public and the URL is correct."))
+# })
+
+# Get last update time
+last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
+```
+
+## Key Metrics
+
+::: {.metrics-grid}
+
+::: {.metric-card}
+<div class="metric-label">Total Records</div>
+<div class="metric-value">`r nrow(data)`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Active Items</div>
+<div class="metric-value">`r sum(data$status == "Active", na.rm = TRUE)`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Completion Rate</div>
+<div class="metric-value">`r scales::percent(sum(data$status == "Complete", na.rm = TRUE) / nrow(data), accuracy = 0.1)`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Average Metric 2</div>
+<div class="metric-value">`r round(mean(data$metric2, na.rm = TRUE), 1)`</div>
+:::
+
+:::
+
+## Visualizations
+
+### Metric 1 Trend Over Time
+
+::: {.chart-container}
+```{r plot-trend}
+#| fig-width: 10
+#| fig-height: 5
+
+p1 <- ggplot(data, aes(x = date, y = metric1)) +
+  geom_line(color = "#3498db", size = 1.2) +
+  geom_point(color = "#2c3e50", size = 2) +
+  labs(
+    title = "Metric 1 Progression",
+    x = "Date",
+    y = "Metric 1 Value"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    panel.grid.minor = element_blank()
+  )
+
+ggplotly(p1, tooltip = c("x", "y")) %>%
+  layout(hovermode = "x unified")
+```
+:::
+
+### Distribution by Category
+
+::: {.chart-container}
+```{r plot-categories}
+#| fig-width: 10
+#| fig-height: 5
+
+category_summary <- data %>%
+  count(category, status) %>%
+  group_by(category) %>%
+  mutate(percentage = n / sum(n) * 100)
+
+p2 <- ggplot(category_summary, aes(x = category, y = n, fill = status)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(values = c("Active" = "#3498db", 
+                                "Pending" = "#f39c12", 
+                                "Complete" = "#27ae60")) +
+  labs(
+    title = "Status Distribution by Category",
+    x = "Category",
+    y = "Count",
+    fill = "Status"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    legend.position = "top"
+  )
+
+ggplotly(p2) %>%
+  layout(hovermode = "closest")
+```
+:::
+
+### Metric 2 Distribution
+
+::: {.chart-container}
+```{r plot-histogram}
+#| fig-width: 10
+#| fig-height: 5
+
+p3 <- ggplot(data, aes(x = metric2)) +
+  geom_histogram(bins = 20, fill = "#3498db", color = "white", alpha = 0.8) +
+  labs(
+    title = "Metric 2 Distribution",
+    x = "Metric 2 Value",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16)
+  )
+
+ggplotly(p3)
+```
+:::
+
+## Data Table
+
+::: {.chart-container}
+```{r data-table}
+library(DT)
+
+data %>%
+  arrange(desc(date)) %>%
+  datatable(
+    options = list(
+      pageLength = 10,
+      scrollX = TRUE,
+      dom = 'Bfrtip',
+      buttons = c('copy', 'csv', 'excel')
+    ),
+    filter = "top",
+    class = 'cell-border stripe',
+    rownames = FALSE
+  )
+```
+:::
+
+::: {.last-updated}
+Last updated: `r last_update`
+:::
+

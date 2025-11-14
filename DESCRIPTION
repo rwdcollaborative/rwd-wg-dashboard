@@ -1,0 +1,18 @@
+Package: rwdwg
+Type: Project
+Title: RWD Working Group Dashboard
+Version: 1.0.0
+Description: Interactive dashboard for visualizing Real World Data Working Group data from Google Sheets.
+Depends: R (>= 4.0.0)
+Imports:
+    googlesheets4,
+    dplyr,
+    ggplot2,
+    plotly,
+    lubridate,
+    tidyr,
+    scales,
+    DT,
+    rmarkdown,
+    knitr
+

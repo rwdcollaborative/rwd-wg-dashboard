@@ -1,0 +1,29 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "RWD Working Group Dashboard"
+  navbar:
+    background: primary
+    left:
+      - text: "Dashboard"
+        href: index.qmd
+      - text: "About"
+        href: about.qmd
+
+format:
+  html:
+    theme: 
+      light: [cosmo, custom.scss]
+    css: styles.css
+    toc: false
+    page-layout: full
+    code-fold: true
+    code-tools: true
+
+execute:
+  echo: false
+  warning: false
+  message: false
+
