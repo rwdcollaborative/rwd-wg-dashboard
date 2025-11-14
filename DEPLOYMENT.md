@@ -62,12 +62,17 @@ To automatically rebuild the dashboard daily (to refresh any cached data or upda
 If you have Quarto and R installed:
 
 ```bash
+# Check dependencies
+make check-deps
+
 # Install R packages (one time)
-R -e 'install.packages(c("googlesheets4", "dplyr", "ggplot2", "plotly", "lubridate", "tidyr", "scales", "DT", "rmarkdown", "knitr"))'
+make install
 
 # Preview the dashboard
-quarto preview
+make preview
 ```
+
+Run `make help` to see all available commands.
 
 ## 🐛 Troubleshooting
 

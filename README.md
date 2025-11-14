@@ -27,9 +27,12 @@ To work with this project locally, you'll need:
 git clone <your-repo-url>
 cd rwd_wg
 
-# Install R packages
-R -e 'install.packages(c("googlesheets4", "dplyr", "ggplot2", "plotly", "lubridate", "tidyr", "scales", "DT", "rmarkdown", "knitr"))'
+# Check dependencies and install R packages
+make check-deps
+make install
 ```
+
+> **Using Make**: This project includes a `Makefile` for convenience. Run `make help` to see all available commands.
 
 ### 2. Configure Your Google Sheet
 
@@ -55,11 +58,16 @@ Modify `index.qmd` to match your data structure:
 ### 4. Preview Locally
 
 ```bash
-# Render and preview the dashboard
-quarto preview
+# Start live preview with auto-reload
+make preview
 ```
 
-This will open a browser with your dashboard at `http://localhost:4200`
+This will open a browser with your dashboard. The page will automatically reload when you make changes to the code.
+
+**Other useful commands:**
+- `make render` - Build the site once (output to `_site/`)
+- `make clean` - Remove generated files
+- `make help` - See all available commands
 
 ## 🚢 Deployment to GitHub Pages
 
