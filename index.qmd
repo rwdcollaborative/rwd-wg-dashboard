@@ -103,6 +103,151 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 
 :::
 
+```{=html}
+<div id="plot-filter-panel" class="plot-filter-panel" style="display:none;">
+  <div class="plot-filter-header">
+    <strong>Chart Filters Active</strong>
+    <span id="plot-filter-summary"></span>
+  </div>
+  <div id="plot-filter-chips" class="plot-filter-chips"></div>
+  <div class="plot-filter-actions">
+    <button id="plot-filter-clear" type="button" class="btn btn-sm btn-outline-secondary">Clear filters</button>
+    <button id="plot-filter-jump" type="button" class="btn btn-sm btn-primary">Jump to table</button>
+  </div>
+</div>
+```
+
+### By RWD Type
+
+::: {.chart-container}
+```{r plot-rwd-types}
+#| fig-width: 10
+#| fig-height: 5
+
+# Parse and count RWD Types (they may be comma-separated with quotes)
+rwd_types_parsed <- data %>%
+  filter(!is.na(`RWD Type`) & `RWD Type` != "") %>%
+  rowwise() %>%
+  mutate(RWD_list = list(parse_csv_string(`RWD Type`))) %>%
+  ungroup() %>%
+  select(-`RWD Type`) %>%  # Remove original column before unnesting
+  unnest(RWD_list)
+
+rwd_types <- rwd_types_parsed %>%
+  count(RWD_list, sort = TRUE, name = "n") %>%
+  rename(`RWD Type` = RWD_list) %>%
+  head(12) %>%
+  arrange(n)  # Sort for plotly
+
+# Create color gradient
+colors <- colorRampPalette(c("#3498db", "#2c3e50"))(nrow(rwd_types))
+
+rwd_plot <- plot_ly(rwd_types, 
+                    x = ~n, 
+                    y = ~`RWD Type`, 
+                    type = 'bar',
+                    orientation = 'h',
+                    marker = list(color = colors),
+                    text = ~paste0(`RWD Type`, ": ", n, " resources"),
+                    hoverinfo = 'text') %>%
+  layout(title = list(text = "Resources by RWD Type",
+                      font = list(size = 16)),
+         xaxis = list(title = "Count"),
+         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
+         hovermode = "closest",
+         showlegend = FALSE,
+         margin = list(l = 80))
+
+rwd_plot$elementId <- "rwd-type-plot"
+rwd_plot
+```
+:::
+
+### Availability
+
+::: {.chart-container}
+```{r plot-availability}
+#| fig-width: 10
+#| fig-height: 5
+
+# Count by availability - handle Google Sheets CSV-style quoting
+availability_parsed <- data %>%
+  filter(!is.na(Availability) & Availability != "") %>%
+  rowwise() %>%
+  mutate(Availability_list = list(parse_csv_string(Availability))) %>%
+  ungroup() %>%
+  select(-Availability) %>%  # Remove original column before unnesting
+  unnest(Availability_list) %>%
+  rename(Availability = Availability_list)
+
+# Count and plot
+availability <- availability_parsed %>%
+  count(Availability, sort = TRUE) %>%
+  mutate(Availability = reorder(Availability, n))
+
+# Use native plotly for better pie chart
+availability_plot <- plot_ly(availability, 
+                             labels = ~Availability, 
+                             values = ~n, 
+                             type = 'pie',
+                             hole = 0.55,
+                             textposition = 'inside',
+                             text = ~ifelse(n >= 5, as.character(n), ""),
+                             textinfo = 'text',
+                             hovertemplate = "%{label}<br>Count: %{value}<extra></extra>",
+                             marker = list(colors = RColorBrewer::brewer.pal(n = nrow(availability), name = "Set3"))) %>%
+  layout(title = list(text = "Resources by Availability", 
+                      font = list(size = 16, family = "sans-serif")),
+                      showlegend = TRUE,
+         legend = list(orientation = "v"))
+
+availability_plot$elementId <- "availability-plot"
+availability_plot
+```
+:::
+
+### By RWD Topic
+
+::: {.chart-container}
+```{r plot-topics}
+#| fig-width: 10
+#| fig-height: 6
+
+# Parse and count Topics (they may be comma-separated with quotes)
+topics_parsed <- data %>%
+  filter(!is.na(Topic) & Topic != "") %>%
+  rowwise() %>%
+  mutate(Topic_list = list(parse_csv_string(Topic))) %>%
+  ungroup() %>%
+  select(-Topic) %>%  # Remove original column before unnesting
+  unnest(Topic_list)
+
+topics <- topics_parsed %>%
+  count(Topic_list, sort = TRUE, name = "n") %>%
+  rename(Topic = Topic_list) %>%
+  head(15) %>%
+  arrange(n)  # Sort for plotly
+
+topic_plot <- plot_ly(topics, 
+                      x = ~n, 
+                      y = ~Topic, 
+                      type = 'bar',
+                      orientation = 'h',
+                      marker = list(color = '#27ae60'),
+                      text = ~paste0(Topic, ": ", n, " resources"),
+                      hoverinfo = 'text') %>%
+  layout(title = list(text = "Top 15 Topics",
+                      font = list(size = 16)),
+         xaxis = list(title = "Number of Resources"),
+         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
+         hovermode = "closest",
+         margin = list(l = 80))
+
+topic_plot$elementId <- "topic-plot"
+topic_plot
+```
+:::
+
 ### By Organization
 
 ::: {.chart-container}
@@ -137,17 +282,17 @@ org_counts_other <- org_counts %>%
 # Put "Other" at the bottom (first in the list for ascending order)
 org_counts <- bind_rows(org_counts_other, org_counts_without_other)
 
-plot_ly(org_counts, 
-        x = ~n, 
-        y = ~DisplayOrg, 
-        type = 'bar',
-        orientation = 'h',
-        marker = list(color = '#3498db'),
-        textposition = 'auto',
-        insidetextfont = list(color = '#f8fafc'),
-        outsidetextfont = list(color = '#2c3e50'),
-        text = ~paste0(DisplayOrg, ": ", n, " resources"),
-        hoverinfo = 'text') %>%
+org_plot <- plot_ly(org_counts, 
+                    x = ~n, 
+                    y = ~DisplayOrg, 
+                    type = 'bar',
+                    orientation = 'h',
+                    marker = list(color = '#3498db'),
+                    textposition = 'auto',
+                    insidetextfont = list(color = '#f8fafc'),
+                    outsidetextfont = list(color = '#2c3e50'),
+                    text = ~paste0(DisplayOrg, ": ", n, " resources"),
+                    hoverinfo = 'text') %>%
   layout(title = list(text = "Organizations by Resource Count",
                       font = list(size = 16)),
          xaxis = list(title = "Number of Resources"),
@@ -156,136 +301,9 @@ plot_ly(org_counts,
                       showticklabels = FALSE),
          hovermode = "closest",
          margin = list(l = 80))
-```
-:::
 
-### By RWD Type
-
-::: {.chart-container}
-```{r plot-rwd-types}
-#| fig-width: 10
-#| fig-height: 5
-
-# Parse and count RWD Types (they may be comma-separated with quotes)
-rwd_types_parsed <- data %>%
-  filter(!is.na(`RWD Type`) & `RWD Type` != "") %>%
-  rowwise() %>%
-  mutate(RWD_list = list(parse_csv_string(`RWD Type`))) %>%
-  ungroup() %>%
-  select(-`RWD Type`) %>%  # Remove original column before unnesting
-  unnest(RWD_list)
-
-rwd_types <- rwd_types_parsed %>%
-  count(RWD_list, sort = TRUE, name = "n") %>%
-  rename(`RWD Type` = RWD_list) %>%
-  head(12) %>%
-  arrange(n)  # Sort for plotly
-
-# Create color gradient
-colors <- colorRampPalette(c("#3498db", "#2c3e50"))(nrow(rwd_types))
-
-plot_ly(rwd_types, 
-        x = ~n, 
-        y = ~`RWD Type`, 
-        type = 'bar',
-        orientation = 'h',
-        marker = list(color = colors),
-        text = ~paste0(`RWD Type`, ": ", n, " resources"),
-        hoverinfo = 'text') %>%
-  layout(title = list(text = "Resources by RWD Type",
-                      font = list(size = 16)),
-         xaxis = list(title = "Count"),
-         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
-         hovermode = "closest",
-         showlegend = FALSE,
-         margin = list(l = 80))
-```
-:::
-
-### By RWD Topic
-
-::: {.chart-container}
-```{r plot-topics}
-#| fig-width: 10
-#| fig-height: 6
-
-# Parse and count Topics (they may be comma-separated with quotes)
-topics_parsed <- data %>%
-  filter(!is.na(Topic) & Topic != "") %>%
-  rowwise() %>%
-  mutate(Topic_list = list(parse_csv_string(Topic))) %>%
-  ungroup() %>%
-  select(-Topic) %>%  # Remove original column before unnesting
-  unnest(Topic_list)
-
-topics <- topics_parsed %>%
-  count(Topic_list, sort = TRUE, name = "n") %>%
-  rename(Topic = Topic_list) %>%
-  head(15) %>%
-  arrange(n)  # Sort for plotly
-
-plot_ly(topics, 
-        x = ~n, 
-        y = ~Topic, 
-        type = 'bar',
-        orientation = 'h',
-        marker = list(color = '#27ae60'),
-        text = ~paste0(Topic, ": ", n, " resources"),
-        hoverinfo = 'text') %>%
-  layout(title = list(text = "Top 15 Topics",
-                      font = list(size = 16)),
-         xaxis = list(title = "Number of Resources"),
-         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
-         hovermode = "closest",
-         margin = list(l = 80))
-```
-:::
-
-### Availability
-
-::: {.chart-container}
-```{r plot-availability}
-#| fig-width: 10
-#| fig-height: 5
-
-# Count by availability - handle Google Sheets CSV-style quoting
-availability_parsed <- data %>%
-  filter(!is.na(Availability) & Availability != "") %>%
-  rowwise() %>%
-  mutate(Availability_list = list(parse_csv_string(Availability))) %>%
-  ungroup() %>%
-  select(-Availability) %>%  # Remove original column before unnesting
-  unnest(Availability_list) %>%
-  rename(Availability = Availability_list)
-
-# Count and plot
-availability <- availability_parsed %>%
-  count(Availability, sort = TRUE) %>%
-  mutate(Availability = reorder(Availability, n))
-
-# Use native plotly for better pie chart
-plot_ly(availability, 
-        labels = ~Availability, 
-        values = ~n, 
-        type = 'pie',
-        hole = 0.55,
-        textposition = 'inside',
-        textinfo = 'percent',
-        hovertemplate = "%{label}<br>Count: %{value}<br>%{percent}<extra></extra>",
-        marker = list(colors = RColorBrewer::brewer.pal(n = nrow(availability), name = "Set3"))) %>%
-  layout(title = list(text = "Resources by Availability", 
-                      font = list(size = 16, family = "sans-serif")),
-         showlegend = TRUE,
-         legend = list(orientation = "v"),
-         annotations = list(
-           list(
-             text = paste0("N = ", sum(availability$n)),
-             x = 0.5,
-             y = 0.5,
-             showarrow = FALSE,
-             font = list(size = 18)
-           )
-         ))
+org_plot$elementId <- "org-count-plot"
+org_plot
 ```
 :::
 
@@ -342,6 +360,7 @@ data_display <- data %>%
     Type = safe_text(Type),
     Availability = safe_text(Availability),
     `RWD Type` = safe_text(`RWD Type`),
+    Topic = safe_text(Topic),
     Details
   ) %>%
   arrange(Organization, Title)
@@ -350,6 +369,7 @@ datatable(
   data_display,
   extensions = 'Buttons',
   escape = FALSE,
+  elementId = "resource-table",
   options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel'),
@@ -362,7 +382,7 @@ datatable(
       list(width = '55%', targets = 0),
       list(width = '28%', targets = 1),
       list(width = '7%', targets = 2),
-      list(visible = FALSE, targets = c(3, 4, 5, 6))
+      list(visible = FALSE, targets = c(3, 4, 5, 6, 7))
     )
   ),
   callback = JS(
@@ -375,7 +395,7 @@ datatable(
     "    row.child.hide();",
     "    tr.removeClass('shown');",
     "  } else {",
-    "    row.child(row.data()[6]).show();",
+    "    row.child(row.data()[7]).show();",
     "    tr.addClass('shown');",
     "  }",
     "});"
@@ -383,10 +403,329 @@ datatable(
   filter = "top",
   class = 'cell-border stripe hover compact inventory-table',
   rownames = FALSE,
-  colnames = c('Title', 'Organization', 'Open', 'Type', 'Availability', 'RWD Type', 'Details')
+  colnames = c('Title', 'Organization', 'Open', 'Type', 'Availability', 'RWD Type', 'Topic', 'Details')
 )
 ```
 :::
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const state = { organization: null, rwdType: null, topic: null, availability: null };
+  const panel = document.getElementById("plot-filter-panel");
+  const chips = document.getElementById("plot-filter-chips");
+  const summary = document.getElementById("plot-filter-summary");
+  const clearBtn = document.getElementById("plot-filter-clear");
+  const jumpBtn = document.getElementById("plot-filter-jump");
+
+  if (!panel || !chips || !summary || !clearBtn || !jumpBtn) return;
+
+  const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const hasFilter = () => Boolean(state.organization || state.rwdType || state.topic || state.availability);
+
+  function getTable() {
+    if (!(window.jQuery && jQuery.fn.dataTable)) return null;
+    const selector = "#resource-table table.dataTable";
+    if (jQuery.fn.dataTable.isDataTable(selector)) return jQuery(selector).DataTable();
+    const fallback = jQuery("#resource-table table");
+    if (fallback.length && jQuery.fn.dataTable.isDataTable(fallback[0])) return jQuery(fallback[0]).DataTable();
+    return null;
+  }
+
+  function stripHtml(value) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = value == null ? "" : String(value);
+    return (tmp.textContent || tmp.innerText || "").trim();
+  }
+
+  function parseCsvLike(value) {
+    if (!value) return [];
+    const parts = String(value).split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+    return parts
+      .map(function (part) {
+        return part.replace(/^\s*"?|"?\s*$/g, "").replace(/\\"/g, "\"").trim();
+      })
+      .filter(Boolean);
+  }
+
+  function toHex(n) {
+    const clamped = Math.max(0, Math.min(255, Math.round(n)));
+    return clamped.toString(16).padStart(2, "0");
+  }
+
+  function buildGradient(n) {
+    if (n <= 0) return [];
+    if (n === 1) return ["#2c3e50"];
+    const start = [52, 152, 219];
+    const end = [44, 62, 80];
+    const colors = [];
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1);
+      const r = start[0] + (end[0] - start[0]) * t;
+      const g = start[1] + (end[1] - start[1]) * t;
+      const b = start[2] + (end[2] - start[2]) * t;
+      colors.push("#" + toHex(r) + toHex(g) + toHex(b));
+    }
+    return colors;
+  }
+
+  function buildOrgData(rows) {
+    const counts = {};
+    rows.forEach(function (row) {
+      const org = stripHtml(row[1]);
+      if (!org || org === "Not provided") return;
+      counts[org] = (counts[org] || 0) + 1;
+    });
+
+    const entries = Object.entries(counts);
+    const singles = entries.filter(function (entry) { return entry[1] === 1; }).length;
+    const regular = entries
+      .filter(function (entry) { return entry[1] > 1; })
+      .sort(function (a, b) {
+        if (a[1] !== b[1]) return a[1] - b[1];
+        return a[0].localeCompare(b[0]);
+      });
+
+    const labels = [];
+    const values = [];
+    if (singles > 0) {
+      labels.push("Other (" + singles + " institutions)");
+      values.push(singles);
+    }
+    regular.forEach(function (entry) {
+      labels.push(entry[0]);
+      values.push(entry[1]);
+    });
+
+    const text = labels.map(function (label, i) {
+      return label + ": " + values[i] + " resources";
+    });
+    return { labels: labels, values: values, text: text };
+  }
+
+  function buildRwdData(rows) {
+    const counts = {};
+    rows.forEach(function (row) {
+      const raw = stripHtml(row[5]);
+      if (!raw || raw === "Not provided") return;
+      parseCsvLike(raw).forEach(function (item) {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+    });
+
+    const entries = Object.entries(counts).sort(function (a, b) {
+      if (a[1] !== b[1]) return a[1] - b[1];
+      return a[0].localeCompare(b[0]);
+    });
+    const labels = entries.map(function (entry) { return entry[0]; });
+    const values = entries.map(function (entry) { return entry[1]; });
+    const text = entries.map(function (entry) { return entry[0] + ": " + entry[1] + " resources"; });
+    return { labels: labels, values: values, text: text, colors: buildGradient(entries.length) };
+  }
+
+  function buildTopicData(rows) {
+    const counts = {};
+    rows.forEach(function (row) {
+      const raw = stripHtml(row[6]);
+      if (!raw || raw === "Not provided") return;
+      parseCsvLike(raw).forEach(function (item) {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+    });
+
+    const top = Object.entries(counts)
+      .sort(function (a, b) {
+        if (a[1] !== b[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0]);
+      })
+      .slice(0, 15)
+      .sort(function (a, b) {
+        if (a[1] !== b[1]) return a[1] - b[1];
+        return a[0].localeCompare(b[0]);
+      });
+
+    const labels = top.map(function (entry) { return entry[0]; });
+    const values = top.map(function (entry) { return entry[1]; });
+    const text = top.map(function (entry) { return entry[0] + ": " + entry[1] + " resources"; });
+    return { labels: labels, values: values, text: text };
+  }
+
+  function buildAvailabilityData(rows) {
+    const counts = {};
+    rows.forEach(function (row) {
+      const raw = stripHtml(row[4]);
+      if (!raw || raw === "Not provided") return;
+      parseCsvLike(raw).forEach(function (item) {
+        counts[item] = (counts[item] || 0) + 1;
+      });
+    });
+
+    const entries = Object.entries(counts).sort(function (a, b) {
+      if (a[1] !== b[1]) return b[1] - a[1];
+      return a[0].localeCompare(b[0]);
+    });
+    return {
+      labels: entries.map(function (entry) { return entry[0]; }),
+      values: entries.map(function (entry) { return entry[1]; }),
+      total: entries.reduce(function (acc, entry) { return acc + entry[1]; }, 0)
+    };
+  }
+
+  function updatePlots(table) {
+    if (!table || !window.Plotly) return;
+    const rows = table.rows({ search: "applied" }).data().toArray();
+
+    const org = buildOrgData(rows);
+    const orgPlot = document.getElementById("org-count-plot");
+    if (orgPlot) {
+      Plotly.restyle(orgPlot, { x: [org.values], y: [org.labels], text: [org.text] }, [0]);
+      Plotly.relayout(orgPlot, { "yaxis.categoryarray": org.labels });
+    }
+
+    const rwd = buildRwdData(rows);
+    const rwdPlot = document.getElementById("rwd-type-plot");
+    if (rwdPlot) {
+      Plotly.restyle(rwdPlot, { x: [rwd.values], y: [rwd.labels], text: [rwd.text], "marker.color": [rwd.colors] }, [0]);
+      Plotly.relayout(rwdPlot, { "yaxis.categoryarray": rwd.labels });
+    }
+
+    const topic = buildTopicData(rows);
+    const topicPlot = document.getElementById("topic-plot");
+    if (topicPlot) {
+      Plotly.restyle(topicPlot, { x: [topic.values], y: [topic.labels], text: [topic.text] }, [0]);
+      Plotly.relayout(topicPlot, { "yaxis.categoryarray": topic.labels });
+    }
+
+    const availability = buildAvailabilityData(rows);
+    const availabilityPlot = document.getElementById("availability-plot");
+    if (availabilityPlot) {
+      const availabilityText = availability.values.map(function (value) {
+        return value >= 5 ? String(value) : "";
+      });
+      Plotly.restyle(availabilityPlot, { labels: [availability.labels], values: [availability.values], text: [availabilityText] }, [0]);
+    }
+  }
+
+  function renderPanel() {
+    if (!hasFilter()) {
+      panel.style.display = "none";
+      chips.innerHTML = "";
+      summary.textContent = "";
+      return;
+    }
+
+    const chipHtml = [];
+    if (state.organization) chipHtml.push("<span class='plot-filter-chip'>Organization: " + state.organization + "</span>");
+    if (state.rwdType) chipHtml.push("<span class='plot-filter-chip'>RWD Type: " + state.rwdType + "</span>");
+    if (state.topic) chipHtml.push("<span class='plot-filter-chip'>Topic: " + state.topic + "</span>");
+    if (state.availability) chipHtml.push("<span class='plot-filter-chip'>Availability: " + state.availability + "</span>");
+    chips.innerHTML = chipHtml.join("");
+    panel.style.display = "block";
+
+    const table = getTable();
+    if (!table) return;
+    const count = table.rows({ filter: "applied" }).count();
+    summary.textContent = "Showing " + count + " matching resources";
+  }
+
+  function applyFilters() {
+    const table = getTable();
+    if (!table) return;
+
+    table.column(1).search(
+      state.organization ? "^" + escapeRegex(state.organization) + "$" : "",
+      true,
+      false
+    );
+    table.column(5).search(
+      state.rwdType ? escapeRegex(state.rwdType) : "",
+      true,
+      false
+    );
+    table.column(6).search(
+      state.topic ? escapeRegex(state.topic) : "",
+      true,
+      false
+    );
+    table.column(4).search(
+      state.availability ? escapeRegex(state.availability) : "",
+      true,
+      false
+    );
+    table.draw();
+    updatePlots(table);
+    renderPanel();
+  }
+
+  function bindPlotClick(plotId, onSelect) {
+    const plotEl = document.getElementById(plotId);
+    if (!plotEl || plotEl.__rwdBound) return false;
+    plotEl.on("plotly_click", function (eventData) {
+      const point = eventData && eventData.points && eventData.points[0];
+      if (!point) return;
+      onSelect(point);
+      applyFilters();
+    });
+    plotEl.__rwdBound = true;
+    return true;
+  }
+
+  function tryBindPlots() {
+    const orgBound = bindPlotClick("org-count-plot", function (point) {
+      const selected = point.y;
+      if (typeof selected !== "string") return;
+      if (selected.indexOf("Other (") === 0) return;
+      state.organization = state.organization === selected ? null : selected;
+    });
+
+    const rwdBound = bindPlotClick("rwd-type-plot", function (point) {
+      const selected = point.y;
+      if (typeof selected !== "string") return;
+      state.rwdType = state.rwdType === selected ? null : selected;
+    });
+
+    const topicBound = bindPlotClick("topic-plot", function (point) {
+      const selected = point.y;
+      if (typeof selected !== "string") return;
+      state.topic = state.topic === selected ? null : selected;
+    });
+
+    const availabilityBound = bindPlotClick("availability-plot", function (point) {
+      const selected = point.label;
+      if (typeof selected !== "string") return;
+      state.availability = state.availability === selected ? null : selected;
+    });
+
+    if (orgBound && rwdBound && topicBound && availabilityBound) clearInterval(bindIntervalId);
+  }
+
+  clearBtn.addEventListener("click", function () {
+    state.organization = null;
+    state.rwdType = null;
+    state.topic = null;
+    state.availability = null;
+    applyFilters();
+  });
+
+  jumpBtn.addEventListener("click", function () {
+    const tableEl = document.getElementById("resource-table");
+    if (tableEl) tableEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  const bindIntervalId = setInterval(tryBindPlots, 300);
+  const tableIntervalId = setInterval(function () {
+    const table = getTable();
+    if (table) {
+      updatePlots(table);
+      renderPanel();
+      clearInterval(tableIntervalId);
+    }
+  }, 300);
+  setTimeout(function () { clearInterval(bindIntervalId); }, 10000);
+  setTimeout(function () { clearInterval(tableIntervalId); }, 10000);
+});
+</script>
+```
 
 ::: {.last-updated}
 Last updated: `r last_update`
