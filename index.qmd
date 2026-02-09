@@ -268,13 +268,24 @@ plot_ly(availability,
         labels = ~Availability, 
         values = ~n, 
         type = 'pie',
+        hole = 0.55,
         textposition = 'inside',
-        textinfo = 'label+percent',
+        textinfo = 'percent',
+        hovertemplate = "%{label}<br>Count: %{value}<br>%{percent}<extra></extra>",
         marker = list(colors = RColorBrewer::brewer.pal(n = nrow(availability), name = "Set3"))) %>%
   layout(title = list(text = "Resources by Availability", 
                       font = list(size = 16, family = "sans-serif")),
          showlegend = TRUE,
-         legend = list(orientation = "v"))
+         legend = list(orientation = "v"),
+         annotations = list(
+           list(
+             text = paste0("N = ", sum(availability$n)),
+             x = 0.5,
+             y = 0.5,
+             showarrow = FALSE,
+             font = list(size = 18)
+           )
+         ))
 ```
 :::
 
@@ -327,4 +338,3 @@ datatable(
 ::: {.last-updated}
 Last updated: `r last_update`
 :::
-
