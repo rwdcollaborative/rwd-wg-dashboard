@@ -13,50 +13,28 @@ The Real World Data (RWD) Workforce Development Across the Translational Spectru
 ::: {.goals-grid}
 
 ::: {.goal-card}
-**1. Inventory RWD Training Needs**
+**1. Needs Assessment**
 
 Assess training needs across stakeholder communities, including: K and T scholars, early career researchers, CTSA and affiliated institutional leadership, local biomedical informatics faculty and staff, and other domain experts including data scientists and clinical practitioners.
 :::
 
 ::: {.goal-card}
-**2. Develop Competency Framework**
+**2. Inventory**
 
 Develop a RWD analytics competency framework and make recommendations for how it can be used in a variety of translational contexts and communities.
 :::
 
 ::: {.goal-card}
-**3. Inventory Educational Assets**
+**3. Maturity Model**
 
 Inventory RWD educational assets and opportunities across the CTSA program in collaboration with T, K, R25, AMIA, and other programs to increase educational collaboration opportunities and promote higher-quality, accessible RWD training for diverse trainees, contexts, and institutions.
 :::
 
-::: {.goal-card}
-**4. Establish Formal Governance**
-
-Develop a mature RWD Education Collaboration into a formal governance and coordination structure that welcomes a variety of contributors and users from multiple CTSA affiliated hubs and organizations.
 :::
 
-:::
+### Working Group Links
 
-### Meetings
-
-This group meets on the **first Thursday of each month** from **12:00 – 1:00 PM Eastern time**.
-
-For meeting agendas, presentations, and summaries, visit the [CTSA CCOS group page](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum).
-
-### Communication Channels
-
-- **Slack**: Join our community at [RWD Collaborative Slack](https://join.slack.com/t/rwdcollaborative/shared_invite/zt-356k24nky-4RMShCfgf5e3CUqX_LQzFQ)
-- **Mailing List**: CCOS-managed distribution list for meeting invitations and group updates
-- **Collaborative Space**: [Sign up for access](https://form.fillout.com/t/gN941wEcSCus) to our externally hosted collaborative workspace
-
-### Contact Information
-
-For more information or to join this working group, please contact:
-
-**Lenore Roca**  
-CCOS Meeting Coordinator  
-[Contact via CCOS](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum)
+For meetings, communications, and contact information, visit the [CTSA CCOS group page](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum).
 
 ---
 
@@ -85,4 +63,3 @@ To add resources to the inventory:
 *Dashboard maintained by the CTSA RWD Working Group*
 
 *Working group information from [CTSA CCOS](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum)*
-

@@ -8,6 +8,13 @@ body {
   display: none; /* Hide default title if using custom header */
 }
 
+.dashboard-header a,
+.dashboard-header a:visited,
+.dashboard-header a:hover,
+.dashboard-header a:active {
+  color: inherit;
+}
+
 /* Responsive grid for metrics */
 .metrics-grid {
   display: grid;
@@ -58,3 +65,92 @@ body {
   color: #7f8c8d;
 }
 
+/* Inventory table redesign */
+.dataTables_scrollBody table.inventory-table {
+  border-collapse: separate !important;
+  border-spacing: 0 6px !important;
+}
+
+.inventory-table.dataTable tbody td {
+  padding: 0.85rem 0.75rem;
+  vertical-align: top;
+  background: #ffffff;
+}
+
+.inventory-title {
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1.35;
+}
+
+.inventory-meta {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.meta-chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: #ecf2f9;
+  color: #516171;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.inventory-table.dataTable tbody tr {
+  cursor: pointer;
+}
+
+.inventory-table.dataTable tbody tr td:last-child a {
+  cursor: pointer;
+}
+
+.inventory-table.dataTable tbody tr.shown td {
+  background-color: #f4f9ff;
+}
+
+.resource-details {
+  background: #f8fafc;
+  border-left: 3px solid #3498db;
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0.75rem;
+  padding: 0.2rem 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.detail-value {
+  color: #3f4e5c;
+  word-break: break-word;
+}
+
+.dataTables_wrapper .dataTables_scrollHead {
+  border-bottom: 1px solid #dde6ef;
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+  border-bottom: 0;
+}
+
+.dtsp-searchPanes .dtsp-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dtsp-searchPanes .dtsp-paneTable .dtsp-nameColumn,
+.dtsp-searchPanes .dtsp-paneTable .dtsp-countColumn {
+  font-size: 0.82rem;
+}

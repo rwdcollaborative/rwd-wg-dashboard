@@ -1,5 +1,5 @@
 ---
-title: "RWD Working Group Dashboard"
+title: "RWD Training Inventory"
 format: 
   html:
     page-layout: full
@@ -37,10 +37,10 @@ parse_csv_string <- function(x) {
 ```
 
 ::: {.dashboard-header}
-# RWD Working Group Resource Inventory
+# Real-World Data Training Resource Inventory
 ### Interactive Dashboard
 
-Explore the comprehensive inventory of Real World Data resources from across CTSA institutions. This dashboard provides real-time insights from our collaborative Google Sheets inventory.
+Explore educational and training Real World Data resources from across CTSA institutions and beyond. This dashboard provides real-time insights from our collaborative [Google Sheets inventory](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit), contributions welcome!
 :::
 
 ```{r load-data}
@@ -79,8 +79,6 @@ tryCatch({
 last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 ```
 
-## Key Metrics
-
 ::: {.metrics-grid}
 
 ::: {.metric-card}
@@ -89,25 +87,23 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Unique Organizations</div>
+<div class="metric-label">Organizations</div>
 <div class="metric-value">`r length(unique(data$Organization[!is.na(data$Organization)]))`</div>
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Resource Types</div>
+<div class="metric-label">RWD Types</div>
 <div class="metric-value">`r length(unique(data$Type[!is.na(data$Type)]))`</div>
 :::
 
 ::: {.metric-card}
-<div class="metric-label">Topics Covered</div>
+<div class="metric-label">RWD Topics</div>
 <div class="metric-value">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
 :::
 
 :::
 
-## Visualizations
-
-### Resources by Organization
+### By Organization
 
 ::: {.chart-container}
 ```{r plot-organizations}
@@ -147,19 +143,23 @@ plot_ly(org_counts,
         type = 'bar',
         orientation = 'h',
         marker = list(color = '#3498db'),
+        textposition = 'auto',
+        insidetextfont = list(color = '#f8fafc'),
+        outsidetextfont = list(color = '#2c3e50'),
         text = ~paste0(DisplayOrg, ": ", n, " resources"),
         hoverinfo = 'text') %>%
   layout(title = list(text = "Organizations by Resource Count",
                       font = list(size = 16)),
          xaxis = list(title = "Number of Resources"),
          yaxis = list(title = "", categoryorder = "array", 
-                      categoryarray = org_counts$DisplayOrg),
+                      categoryarray = org_counts$DisplayOrg,
+                      showticklabels = FALSE),
          hovermode = "closest",
-         margin = list(l = 200))
+         margin = list(l = 80))
 ```
 :::
 
-### Distribution by RWD Type
+### By RWD Type
 
 ::: {.chart-container}
 ```{r plot-rwd-types}
@@ -195,14 +195,14 @@ plot_ly(rwd_types,
   layout(title = list(text = "Resources by RWD Type",
                       font = list(size = 16)),
          xaxis = list(title = "Count"),
-         yaxis = list(title = "", categoryorder = "total ascending"),
+         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
          hovermode = "closest",
          showlegend = FALSE,
-         margin = list(l = 150))
+         margin = list(l = 80))
 ```
 :::
 
-### Topics Coverage
+### By RWD Topic
 
 ::: {.chart-container}
 ```{r plot-topics}
@@ -235,13 +235,13 @@ plot_ly(topics,
   layout(title = list(text = "Top 15 Topics",
                       font = list(size = 16)),
          xaxis = list(title = "Number of Resources"),
-         yaxis = list(title = "", categoryorder = "total ascending"),
+         yaxis = list(title = "", categoryorder = "total ascending", showticklabels = FALSE),
          hovermode = "closest",
-         margin = list(l = 150))
+         margin = list(l = 80))
 ```
 :::
 
-### Availability Status
+### Availability
 
 ::: {.chart-container}
 ```{r plot-availability}
@@ -289,48 +289,101 @@ plot_ly(availability,
 ```
 :::
 
-## Resource Inventory Table
+## Inventory Table
 
 ::: {.chart-container}
 ```{r data-table}
 library(DT)
 
-# Create a display version with clickable URLs
+# Helper for display-safe values
+safe_text <- function(x) {
+  ifelse(is.na(x) | trimws(x) == "", "Not provided", as.character(htmltools::htmlEscape(x)))
+}
+
+# Build compact rows plus expandable details
 data_display <- data %>%
   mutate(
-    # Make URLs clickable if they exist
-    URL = ifelse(!is.na(`URL(s)`) & `URL(s)` != "",
-                 sprintf('<a href="%s" target="_blank">Link</a>', `URL(s)`),
-                 ""),
-    # Truncate description for display
-    Description_Short = ifelse(!is.na(Description),
-                               substr(Description, 1, 100),
-                               "")
+    First_URL = vapply(`URL(s)`, function(x) {
+      parsed <- parse_csv_string(x)
+      if (length(parsed) > 0) parsed[[1]] else NA_character_
+    }, character(1)),
+    Title_Tooltip = ifelse(
+      is.na(Description) | trimws(Description) == "",
+      "No description provided",
+      as.character(htmltools::htmlEscape(Description))
+    ),
+    Title_Cell = paste0(
+      '<div class="inventory-title" title="', Title_Tooltip, '">', safe_text(Title), '</div>',
+      '<div class="inventory-meta">',
+      '<span class="meta-chip">Type: ', safe_text(Type), '</span>',
+      '<span class="meta-chip">RWD: ', safe_text(`RWD Type`), '</span>',
+      '<span class="meta-chip">Availability: ', safe_text(Availability), '</span>',
+      '</div>'
+    ),
+    Actions = ifelse(
+      !is.na(First_URL) & First_URL != "",
+      sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">Open</a>', htmltools::htmlEscape(First_URL)),
+      ""
+    ),
+    Details = paste0(
+      '<div class="resource-details">',
+      '<div class="detail-row"><span class="detail-label">Topic</span><span class="detail-value">', safe_text(Topic), '</span></div>',
+      '<div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">', safe_text(Description), '</span></div>',
+      '<div class="detail-row"><span class="detail-label">RWD Type</span><span class="detail-value">', safe_text(`RWD Type`), '</span></div>',
+      '<div class="detail-row"><span class="detail-label">Intended Audience</span><span class="detail-value">', safe_text(`Intended Audience`), '</span></div>',
+      '<div class="detail-row"><span class="detail-label">All URLs</span><span class="detail-value">', safe_text(`URL(s)`), '</span></div>',
+      '</div>'
+    )
   ) %>%
-  select(Title, Organization, Type, `RWD Type`, Topic, Availability, URL, Description_Short) %>%
+  transmute(
+    Title = Title_Cell,
+    Organization = safe_text(Organization),
+    Actions = Actions,
+    Type = safe_text(Type),
+    Availability = safe_text(Availability),
+    `RWD Type` = safe_text(`RWD Type`),
+    Details
+  ) %>%
   arrange(Organization, Title)
 
 datatable(
   data_display,
-  escape = FALSE,  # Allow HTML in URL column
+  extensions = 'Buttons',
+  escape = FALSE,
   options = list(
-    pageLength = 15,
-    scrollX = TRUE,
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel'),
+    paging = FALSE,
+    scrollX = TRUE,
+    scrollY = "560px",
+    scrollCollapse = TRUE,
+    order = list(list(1, "asc"), list(0, "asc")),
     columnDefs = list(
-      list(width = '250px', targets = 0),  # Title
-      list(width = '150px', targets = 1),  # Organization
-      list(width = '100px', targets = c(2, 3, 5)),  # Type, RWD Type, Availability
-      list(width = '150px', targets = 4),  # Topic
-      list(width = '50px', targets = 6),   # URL
-      list(width = '300px', targets = 7)   # Description
+      list(width = '55%', targets = 0),
+      list(width = '28%', targets = 1),
+      list(width = '7%', targets = 2),
+      list(visible = FALSE, targets = c(3, 4, 5, 6))
     )
   ),
+  callback = JS(
+    "table.on('click', 'tbody td', function(e) {",
+    "  if ($(e.target).closest('a, button, input').length) return;",
+    "  var tr = $(this).closest('tr');",
+    "  if (tr.hasClass('child')) return;",
+    "  var row = table.row(tr);",
+    "  if (row.child.isShown()) {",
+    "    row.child.hide();",
+    "    tr.removeClass('shown');",
+    "  } else {",
+    "    row.child(row.data()[6]).show();",
+    "    tr.addClass('shown');",
+    "  }",
+    "});"
+  ),
   filter = "top",
-  class = 'cell-border stripe hover',
+  class = 'cell-border stripe hover compact inventory-table',
   rownames = FALSE,
-  colnames = c('Title', 'Organization', 'Type', 'RWD Type', 'Topic', 'Availability', 'URL', 'Description')
+  colnames = c('Title', 'Organization', 'Open', 'Type', 'Availability', 'RWD Type', 'Details')
 )
 ```
 :::

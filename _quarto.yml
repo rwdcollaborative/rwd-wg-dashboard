@@ -3,7 +3,7 @@ project:
   output-dir: _site
 
 website:
-  title: "RWD Working Group Dashboard"
+  title: "RWD Training Inventory"
   navbar:
     background: primary
     left:
@@ -26,4 +26,3 @@ execute:
   echo: false
   warning: false
   message: false
-
