@@ -173,7 +173,7 @@ write_meta_column <- function(column_name, values) {
   col_idx <- match(column_name, names(data_raw))
   if (is.na(col_idx)) stop(sprintf("Could not locate column: %s", column_name))
   end_row <- data_start_row + length(values) - 1L
-  target_range <- as.character(cell_limits(c(data_start_row, col_idx), c(end_row, col_idx)))
+  target_range <- cell_limits(c(data_start_row, col_idx), c(end_row, col_idx))
   range_write(
     ss = sheet_id,
     sheet = sheet_name,
