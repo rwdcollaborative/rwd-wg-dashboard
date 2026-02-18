@@ -117,14 +117,13 @@ summarize_row <- function(urls) {
   warn <- which(!is.na(codes) & codes >= 400L & !(codes %in% c(404L, 410L)))
   unknown <- which(is.na(codes))
 
-  status <- if (length(dead) > 0 && length(ok) == 0 && length(warn) == 0) {
+  status <- if (length(dead) > 0 && length(ok) == 0 && length(warn) == 0 && length(unknown) == 0) {
     "dead"
-  } else if (length(dead) > 0 || length(warn) > 0 || (length(ok) > 0 && length(unknown) > 0)) {
-    "warn"
-  } else if (length(ok) > 0) {
+  } else if (length(ok) > 0 && length(dead) == 0 && length(warn) == 0 && length(unknown) == 0) {
     "ok"
   } else {
-    "unknown"
+    # Any non-clean result with provided URLs is a warning (timeouts, DNS failures, mixed outcomes, etc.).
+    "warn"
   }
 
   detail_parts <- vapply(seq_along(urls), function(i) {

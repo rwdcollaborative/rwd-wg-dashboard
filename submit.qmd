@@ -611,6 +611,23 @@ document.addEventListener("DOMContentLoaded", function () {
       return { ok: false, message: "Title is required." };
     }
 
+    const urlCheck = getUrlValidationState(trimValue("urls"));
+    if (urlCheck.state === "invalid") {
+      const firstInvalid = urlCheck.invalid && urlCheck.invalid.length > 0 ? urlCheck.invalid[0] : "URL";
+      return {
+        ok: false,
+        message: "Invalid URL detected: " + firstInvalid + ". Use full http(s) URLs with a public domain (e.g., .org, .com)."
+      };
+    }
+
+    const email = trimValue("contributor-email");
+    if (email) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(email)) {
+        return { ok: false, message: "Contributor Email is not valid." };
+      }
+    }
+
     return { ok: true, message: "" };
   }
 
@@ -730,6 +747,8 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       throw new Error(body.message || "Submission failed.");
     }
+
+    return body;
   }
 
   function initializeOtherInputToggles() {
@@ -804,13 +823,22 @@ document.addEventListener("DOMContentLoaded", function () {
     setSubmitting(true);
 
     try {
-      await submitRecord(record);
+      const result = await submitRecord(record);
       form.reset();
       initializeOtherInputToggles();
       updateRecommendationHints();
+      let successMessage = "Your resource was submitted successfully. Thank you for contributing.";
+      if (result && Array.isArray(result.modified_fields) && result.modified_fields.length > 0) {
+        const names = result.modified_fields
+          .map(function (item) { return item && item.field ? item.field : ""; })
+          .filter(Boolean)
+          .slice(0, 5);
+        const suffix = names.length > 0 ? names.join(", ") : "one or more fields";
+        successMessage += " Note: the server normalized these field(s): " + suffix + ".";
+      }
       openSubmissionModal({
         title: "Submission Complete",
-        message: "Your resource was submitted successfully. Thank you for contributing.",
+        message: successMessage,
         inFlight: false,
         showAction: true,
         actionLabel: "Submit Another"

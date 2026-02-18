@@ -74,6 +74,7 @@ function doPost(e) {
 
       const header = getHeaderContext(sheet);
       const row = buildRow(header, record, submittedAt, "form");
+      const modifications = detectRecordModifications(record, row, header.indexByName);
 
       const titleCol = header.indexByName["Title"];
       if (titleCol !== undefined) title = row[titleCol];
@@ -88,11 +89,12 @@ function doPost(e) {
       }
 
       sheet.appendRow(row);
+      const response = { ok: true, message: "Row appended.", title: title };
+      if (modifications.length > 0) response.modified_fields = modifications;
+      return jsonResponse(response);
     } finally {
       lock.releaseLock();
     }
-
-    return jsonResponse({ ok: true, message: "Row appended.", title: title });
   } catch (err) {
     return jsonResponse({ ok: false, code: "INTERNAL_ERROR", message: String(err) });
   }
@@ -165,6 +167,26 @@ function setByColumnName(row, indexByName, columnName, value) {
   const idx = indexByName[columnName];
   if (idx === undefined) return;
   row[idx] = normalizeCell(value);
+}
+
+function detectRecordModifications(record, row, indexByName) {
+  const modified = [];
+  INVENTORY_COLUMNS.forEach(function (name) {
+    const idx = indexByName[name];
+    if (idx === undefined) return;
+    const rawProvided = (record[name] !== undefined && record[name] !== null) ? String(record[name]) : "";
+    if (!rawProvided.trim()) return;
+    const normalized = normalizeCell(rawProvided);
+    const stored = String(row[idx] || "");
+    if (normalized !== stored) {
+      modified.push({
+        field: name,
+        submitted: rawProvided,
+        stored: stored
+      });
+    }
+  });
+  return modified;
 }
 
 function normalizeIsoTimestamp(value) {
@@ -349,7 +371,7 @@ function submissionFingerprint(record) {
   ];
   const joined = parts.join("|");
   const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, joined, Utilities.Charset.UTF_8);
-  return Utilities.base64EncodeWebSafe(digest, true);
+  return Utilities.base64EncodeWebSafe(digest);
 }
 
 function enforceRateLimits(fingerprint) {
