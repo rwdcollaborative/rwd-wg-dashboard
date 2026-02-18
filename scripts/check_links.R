@@ -37,7 +37,47 @@ extract_urls <- function(x) {
   unique(found[nzchar(found)])
 }
 
+is_ipv4_literal <- function(host) {
+  grepl("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$", host)
+}
+
+is_private_ipv4 <- function(host) {
+  parts <- as.integer(strsplit(host, ".", fixed = TRUE)[[1]])
+  if (length(parts) != 4 || any(is.na(parts)) || any(parts < 0 | parts > 255)) return(FALSE)
+  if (parts[1] == 10) return(TRUE)
+  if (parts[1] == 127) return(TRUE)
+  if (parts[1] == 0) return(TRUE)
+  if (parts[1] == 169 && parts[2] == 254) return(TRUE)
+  if (parts[1] == 172 && parts[2] >= 16 && parts[2] <= 31) return(TRUE)
+  if (parts[1] == 192 && parts[2] == 168) return(TRUE)
+  FALSE
+}
+
+blocked_target_reason <- function(url) {
+  parsed <- tryCatch(url_parse(url), error = function(e) NULL)
+  if (is.null(parsed)) return("invalid_url")
+
+  scheme <- tolower(if (is.null(parsed$scheme)) "" else parsed$scheme)
+  host <- tolower(if (is.null(parsed$hostname)) "" else parsed$hostname)
+  if (!(scheme %in% c("http", "https"))) return("blocked_scheme")
+  if (!nzchar(host)) return("missing_host")
+  if (host == "localhost") return("localhost")
+  if (grepl("\\.local$", host) || grepl("\\.internal$", host)) return("internal_hostname")
+  if (is_ipv4_literal(host) && is_private_ipv4(host)) return("private_ipv4")
+  ""
+}
+
 check_one_url <- function(url) {
+  blocked_reason <- blocked_target_reason(url)
+  if (nzchar(blocked_reason)) {
+    return(list(
+      ok = FALSE,
+      code = 451L,
+      effective = url,
+      error = paste0("BLOCKED_TARGET(", blocked_reason, ")")
+    ))
+  }
+
   probe <- function(method) {
     req <- request(url) |>
       req_method(method) |>
@@ -89,8 +129,13 @@ summarize_row <- function(urls) {
 
   detail_parts <- vapply(seq_along(urls), function(i) {
     code <- checks[[i]]$code
+    err <- checks[[i]]$error
     code_txt <- ifelse(is.na(code), "ERR", as.character(code))
-    paste0(code_txt, " ", urls[[i]])
+    if (!is.na(err) && nzchar(err)) {
+      paste0(code_txt, " ", urls[[i]], " [", err, "]")
+    } else {
+      paste0(code_txt, " ", urls[[i]])
+    }
   }, character(1))
 
   detail <- paste0(length(ok), "/", length(urls), " ok; ", paste(detail_parts, collapse = " | "))

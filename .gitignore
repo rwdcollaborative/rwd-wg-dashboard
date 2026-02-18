@@ -36,3 +36,5 @@ venv/
 
 
 **/*.quarto_ipynb
+
+.env

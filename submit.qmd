@@ -5,6 +5,13 @@ format:
     page-layout: full
 ---
 
+```{r token-setup}
+#| include: false
+submit_token_js <- Sys.getenv("SUBMIT_TOKEN", "")
+submit_token_js <- gsub("\\\\", "\\\\\\\\", submit_token_js)
+submit_token_js <- gsub("\"", "\\\\\"", submit_token_js)
+```
+
 ::: {.dashboard-header}
 # Submit an RWD Training Resource
 #### Whether new, old, at your organization or elsewhere, if it relates to training for the use of real world data it is welcome!
@@ -257,7 +264,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const CONFIG = {
     sheetId: "1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s",
     optionsSheet: "Options",
-    defaultSubmitUrl: "https://script.google.com/macros/s/AKfycbx_bjieGKGCQwoDFenkOK0A-IbcCqZb0VgMogDqaG0v-AzTV-NQ8PchJqBTJniJvbDDyg/exec"
+    defaultSubmitUrl: "https://script.google.com/macros/s/AKfycbx_bjieGKGCQwoDFenkOK0A-IbcCqZb0VgMogDqaG0v-AzTV-NQ8PchJqBTJniJvbDDyg/exec",
+    submitToken: "`r submit_token_js`"
   };
 
   const FALLBACK_OPTIONS = {
@@ -686,12 +694,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const payload = {
       source: "rwd-dashboard-submit-form",
       submitted_at: new Date().toISOString(),
+      submit_token: CONFIG.submitToken || "",
       record: record
     };
 
     const response = await fetch(submitUrl, {
       method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+        "X-Submit-Token": CONFIG.submitToken || ""
+      },
       body: JSON.stringify(payload)
     });
 
@@ -704,6 +716,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (!response.ok || body.ok === false) {
+      const code = body && body.code ? String(body.code) : "";
+      if (code === "UNAUTHORIZED") {
+        throw new Error("Submission is not authorized. Please contact the dashboard administrator.");
+      }
+      if (code === "RATE_LIMITED") {
+        throw new Error(body.message || "Too many submissions right now. Please try again shortly.");
+      }
+      if (code === "DUPLICATE_RECENT") {
+        throw new Error("This appears to be a recent duplicate submission.");
+      }
+      if (code === "VALIDATION_ERROR") {
+        throw new Error(body.message || "Submission contained invalid values. Please review and retry.");
+      }
       throw new Error(body.message || "Submission failed.");
     }
   }

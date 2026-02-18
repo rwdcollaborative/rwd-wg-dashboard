@@ -44,12 +44,12 @@ preview:
 	@echo "Dashboard will open in your browser"
 	@echo "Press Ctrl+C to stop"
 	@echo ""
-	quarto preview
+	@set -a; [ -f .env ] && . ./.env; set +a; quarto preview
 
 # Build the site once
 render:
 	@echo "Rendering dashboard..."
-	quarto render
+	@set -a; [ -f .env ] && . ./.env; set +a; quarto render
 	@echo ""
 	@echo "✅ Dashboard built successfully!"
 	@echo "Output is in: _site/"
@@ -60,6 +60,7 @@ serve:
 	@echo "Open: http://localhost:8080"
 	@echo "Press Ctrl+C to stop"
 	@echo ""
+	@set -a; [ -f .env ] && . ./.env; set +a; quarto render
 	@cd _site && python3 -m http.server 8080
 
 # Clean generated files

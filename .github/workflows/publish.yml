@@ -49,6 +49,8 @@ jobs:
             any::lubridate
 
       - name: Render Quarto Project
+        env:
+          SUBMIT_TOKEN: ${{ secrets.SUBMIT_TOKEN }}
         run: quarto render
 
       - name: Upload artifact

@@ -76,12 +76,17 @@ The `submit.qmd` page can write new entries to the `Inventory` tab through a Goo
    - Who has access: `Anyone` (or your preferred allowed audience)
 6. Set `defaultSubmitUrl` in `submit.qmd` to your Web App `/exec` URL.
 7. Optional smoke test: open the `/exec` URL in a browser and confirm it returns JSON with `ok: true`.
+8. Configure submission token (required for hardened submit endpoint):
+   - In Apps Script: `Project Settings` -> `Script properties` -> add `SUBMIT_TOKEN`.
+   - In GitHub repo secrets: add `SUBMIT_TOKEN` with the same value.
+   - For local rendering: set env var `SUBMIT_TOKEN` before `quarto render`.
 
 With this setup:
 - Form submissions write `Meta Created At`, `Meta Updated At`, and `Meta Source = form`.
 - Direct sheet edits automatically update `Meta Updated At` and `Meta Source = manual` via `onEdit(e)`.
 - The dashboard freshness cards use these metadata columns when available.
 - URL health can be tracked in `Meta URL Status`, `Meta URL Checked At`, and `Meta URL Check Detail`.
+- Submit endpoint protections include token verification, validation, formula-injection protection, global rate limits, and short-window duplicate suppression.
 
 ### 3b. Optional Daily URL Checker (GitHub Action)
 
@@ -90,6 +95,7 @@ This repository includes `.github/workflows/url-link-check.yml` to check all inv
 Required repository secrets:
 - `GOOGLE_SERVICE_ACCOUNT_JSON`: full JSON key for a Google service account
 - `RWD_SHEET_ID`: spreadsheet ID (the long ID in the sheet URL)
+- `SUBMIT_TOKEN`: token injected at build-time for the submission form (must match Apps Script Script Property)
 
 Important:
 - Share the Google Sheet with the service account email as an Editor.
