@@ -52,13 +52,17 @@ check_one_url <- function(url) {
     )
   }
 
-  out <- tryCatch(probe("HEAD"), error = function(e) NULL)
-  if (is.null(out)) {
-    out <- tryCatch(probe("GET"), error = function(e) {
+  head_out <- tryCatch(probe("HEAD"), error = function(e) NULL)
+
+  # Many sites block or mishandle HEAD; retry with GET when HEAD is missing or non-2xx/3xx.
+  if (is.null(head_out) || is.na(head_out$code) || head_out$code >= 400L) {
+    get_out <- tryCatch(probe("GET"), error = function(e) {
       list(ok = FALSE, code = NA_integer_, effective = url, error = conditionMessage(e))
     })
+    return(get_out)
   }
-  out
+
+  head_out
 }
 
 summarize_row <- function(urls) {
@@ -69,12 +73,13 @@ summarize_row <- function(urls) {
   checks <- lapply(urls, check_one_url)
   codes <- vapply(checks, function(x) ifelse(is.null(x$code), NA_integer_, x$code), integer(1))
   ok <- which(!is.na(codes) & codes >= 200 & codes < 400)
-  dead <- which(!is.na(codes) & codes >= 400)
+  dead <- which(!is.na(codes) & codes %in% c(404L, 410L))
+  warn <- which(!is.na(codes) & codes >= 400L & !(codes %in% c(404L, 410L)))
   unknown <- which(is.na(codes))
 
-  status <- if (length(dead) > 0 && length(ok) == 0) {
+  status <- if (length(dead) > 0 && length(ok) == 0 && length(warn) == 0) {
     "dead"
-  } else if (length(dead) > 0 || (length(ok) > 0 && length(unknown) > 0)) {
+  } else if (length(dead) > 0 || length(warn) > 0 || (length(ok) > 0 && length(unknown) > 0)) {
     "warn"
   } else if (length(ok) > 0) {
     "ok"

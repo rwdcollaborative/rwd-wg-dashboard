@@ -300,10 +300,30 @@ document.addEventListener("DOMContentLoaded", function () {
     if (start === -1 || end === -1) throw new Error("Unexpected options response format");
     const json = JSON.parse(text.slice(start, end + 1));
     const table = json.table || {};
-    const columns = (table.cols || []).map(function (col) {
-      return col.label || col.id || "";
+    const rawCols = table.cols || [];
+    let columns = rawCols.map(function (col) {
+      return (col && col.label) ? String(col.label).trim() : "";
     });
-    const rows = table.rows || [];
+    let rows = table.rows || [];
+
+    // Some GViz responses provide blank labels (with ids like A/B/C) and put real headers in row 1.
+    const hasNamedColumns = columns.some(function (name) {
+      return String(name || "").trim() !== "";
+    });
+    if (!hasNamedColumns && rows.length > 0) {
+      const headerRow = rows[0].c || [];
+      columns = headerRow.map(function (cell, index) {
+        const value = cell && (cell.f !== undefined && cell.f !== null ? cell.f : cell.v);
+        const header = value === undefined || value === null ? "" : String(value).trim();
+        return header || ("Column " + (index + 1));
+      });
+      rows = rows.slice(1);
+    } else {
+      // If labels are present, ensure unnamed columns still get deterministic placeholders.
+      columns = columns.map(function (name, index) {
+        return name || ("Column " + (index + 1));
+      });
+    }
 
     const options = {};
     columns.forEach(function (colName, index) {
@@ -533,7 +553,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function setStatus(message, level) {
-    statusEl.textContent = message;
+    const text = String(message || "").trim();
+    statusEl.textContent = text ? ("Status: " + text) : "";
     statusEl.className = "status-text " + (level || "");
   }
 

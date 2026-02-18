@@ -188,7 +188,6 @@ latest_row_updated <- if (exists("meta_updated_col") && !is.na(meta_updated_col)
 } else {
   "Not configured"
 }
-dead_links_count <- sum(tolower(trimws(as.character(data$`Meta URL Status`))) == "dead", na.rm = TRUE)
 
 # Get last update time
 last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
@@ -214,26 +213,6 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 ::: {.metric-card}
 <div class="metric-label">RWD Topics</div>
 <div class="metric-value">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
-:::
-
-::: {.metric-card}
-<div class="metric-label">Sheet Last Modified</div>
-<div class="metric-detail" id="sheet-last-modified">`r sheet_last_modified`</div>
-:::
-
-::: {.metric-card}
-<div class="metric-label">Latest Row Created</div>
-<div class="metric-detail" id="latest-row-created">`r latest_row_created`</div>
-:::
-
-::: {.metric-card}
-<div class="metric-label">Latest Row Updated</div>
-<div class="metric-detail" id="latest-row-updated">`r latest_row_updated`</div>
-:::
-
-::: {.metric-card}
-<div class="metric-label">Dead Links</div>
-<div class="metric-value">`r dead_links_count`</div>
 :::
 
 :::
@@ -900,7 +879,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const sheetModifiedEl = document.getElementById("sheet-last-modified");
   const latestCreatedEl = document.getElementById("latest-row-created");
   const latestUpdatedEl = document.getElementById("latest-row-updated");
-  if (!latestCreatedEl && !latestUpdatedEl && !sheetModifiedEl) return;
+  const deadLinksEl = document.getElementById("dead-links-count");
+  if (!latestCreatedEl && !latestUpdatedEl && !sheetModifiedEl && !deadLinksEl) return;
 
   const SHEET_ID = "1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s";
   const SHEET_NAME = "Inventory";
@@ -946,6 +926,52 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  function normalizeKey(title, org) {
+    const t = (title || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const o = (org || "").toLowerCase().replace(/\s+/g, " ").trim();
+    return t + "||" + o;
+  }
+
+  function stripHtml(value) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = value == null ? "" : String(value);
+    return (tmp.textContent || tmp.innerText || "").trim();
+  }
+
+  function statusLabel(status) {
+    if (status === "ok") return "Link Check: OK";
+    if (status === "dead") return "Link Check: Dead";
+    if (status === "warn") return "Link Check: Warn";
+    return "Link Check: Unknown";
+  }
+
+  function makeStatusChip(status) {
+    const s = (status === "ok" || status === "dead" || status === "warn") ? status : "unknown";
+    return "<span class=\"url-status-chip status-" + s + "\" title=\"" + statusLabel(s) + "\"><span class=\"url-status-dot\"></span>" + statusLabel(s) + "</span>";
+  }
+
+  function updateDetailValue(detailsHtml, label, value) {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = detailsHtml || "";
+    const rows = wrapper.querySelectorAll(".detail-row");
+    rows.forEach(function (row) {
+      const labelEl = row.querySelector(".detail-label");
+      const valueEl = row.querySelector(".detail-value");
+      if (!labelEl || !valueEl) return;
+      if (labelEl.textContent.trim() === label) valueEl.textContent = value;
+    });
+    return wrapper.innerHTML;
+  }
+
+  function getDataTable() {
+    if (!(window.jQuery && jQuery.fn.dataTable)) return null;
+    const selector = "#resource-table table.dataTable";
+    if (jQuery.fn.dataTable.isDataTable(selector)) return jQuery(selector).DataTable();
+    const fallback = jQuery("#resource-table table");
+    if (fallback.length && jQuery.fn.dataTable.isDataTable(fallback[0])) return jQuery(fallback[0]).DataTable();
+    return null;
+  }
+
   fetch(GVIZ_URL)
     .then(function (response) {
       if (!response.ok) throw new Error("Failed to load sheet data");
@@ -961,9 +987,14 @@ document.addEventListener("DOMContentLoaded", function () {
       let colNames = cols.map(function (c) { return (c && c.label ? String(c.label).trim() : ""); });
       let createdIdx = colNames.indexOf("Meta Created At");
       let updatedIdx = colNames.indexOf("Meta Updated At");
+      let titleIdx = colNames.indexOf("Title");
+      let orgIdx = colNames.indexOf("Organization");
+      let statusIdx = colNames.indexOf("Meta URL Status");
+      let checkedIdx = colNames.indexOf("Meta URL Checked At");
+      let detailIdx = colNames.indexOf("Meta URL Check Detail");
 
       // Fallback: some GViz responses expose headers as the first data row.
-      if ((createdIdx < 0 || updatedIdx < 0) && rows.length > 0) {
+      if ((createdIdx < 0 || updatedIdx < 0 || statusIdx < 0) && rows.length > 0) {
         const firstRowCells = rows[0].c || [];
         const headerFromFirstRow = firstRowCells.map(function (cell) {
           const value = cell && (cell.f !== undefined && cell.f !== null ? cell.f : cell.v);
@@ -971,18 +1002,45 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         const fallbackCreatedIdx = headerFromFirstRow.indexOf("Meta Created At");
         const fallbackUpdatedIdx = headerFromFirstRow.indexOf("Meta Updated At");
-        if (fallbackCreatedIdx >= 0 || fallbackUpdatedIdx >= 0) {
+        const fallbackTitleIdx = headerFromFirstRow.indexOf("Title");
+        const fallbackOrgIdx = headerFromFirstRow.indexOf("Organization");
+        const fallbackStatusIdx = headerFromFirstRow.indexOf("Meta URL Status");
+        const fallbackCheckedIdx = headerFromFirstRow.indexOf("Meta URL Checked At");
+        const fallbackDetailIdx = headerFromFirstRow.indexOf("Meta URL Check Detail");
+        if (fallbackCreatedIdx >= 0 || fallbackUpdatedIdx >= 0 || fallbackStatusIdx >= 0) {
           createdIdx = fallbackCreatedIdx;
           updatedIdx = fallbackUpdatedIdx;
+          titleIdx = fallbackTitleIdx;
+          orgIdx = fallbackOrgIdx;
+          statusIdx = fallbackStatusIdx;
+          checkedIdx = fallbackCheckedIdx;
+          detailIdx = fallbackDetailIdx;
           dataRows = rows.slice(1);
         }
       }
 
       let latestCreated = null;
       let latestUpdated = null;
+      let deadCount = 0;
+      const rowMeta = {};
 
       dataRows.forEach(function (row) {
         const cells = (row && row.c) ? row.c : [];
+        const titleVal = titleIdx >= 0 && cells[titleIdx] ? (cells[titleIdx].v || cells[titleIdx].f || "") : "";
+        const orgVal = orgIdx >= 0 && cells[orgIdx] ? (cells[orgIdx].v || cells[orgIdx].f || "") : "";
+        const statusRaw = statusIdx >= 0 && cells[statusIdx] ? (cells[statusIdx].v || cells[statusIdx].f || "") : "";
+        const checkedRaw = checkedIdx >= 0 && cells[checkedIdx] ? (cells[checkedIdx].v || cells[checkedIdx].f || "") : "";
+        const detailRaw = detailIdx >= 0 && cells[detailIdx] ? (cells[detailIdx].v || cells[detailIdx].f || "") : "";
+        const status = String(statusRaw || "").trim().toLowerCase();
+        if (status === "dead") deadCount += 1;
+        if (titleVal) {
+          rowMeta[normalizeKey(String(titleVal), String(orgVal))] = {
+            status: status || "unknown",
+            checkedAt: String(checkedRaw || "").trim() || "Unknown",
+            detail: String(detailRaw || "").trim() || "Unknown"
+          };
+        }
+
         if (createdIdx >= 0) {
           const createdVal = cells[createdIdx] ? cells[createdIdx].v : null;
           const createdDate = parseTimestamp(createdVal);
@@ -1012,6 +1070,44 @@ document.addEventListener("DOMContentLoaded", function () {
           .filter(function (d) { return d instanceof Date; })
           .sort(function (a, b) { return b - a; })[0];
         if (mostRecent) sheetModifiedEl.textContent = formatDate(mostRecent);
+      }
+
+      if (deadLinksEl && statusIdx >= 0) deadLinksEl.textContent = String(deadCount);
+
+      if (statusIdx >= 0) {
+        const tryApply = function () {
+          const table = getDataTable();
+          if (!table) return false;
+
+          const indexes = table.rows().indexes().toArray();
+          indexes.forEach(function (idx) {
+            const rowData = table.row(idx).data();
+            if (!rowData || !rowData.length) return;
+
+            const titleText = stripHtml(rowData[0]).split("\n")[0].trim();
+            const orgText = stripHtml(rowData[1]);
+            const meta = rowMeta[normalizeKey(titleText, orgText)] || rowMeta[normalizeKey(titleText, "")];
+            if (!meta) return;
+
+            const titleWrap = document.createElement("div");
+            titleWrap.innerHTML = rowData[0];
+            const chip = titleWrap.querySelector(".url-status-chip");
+            if (chip) chip.outerHTML = makeStatusChip(meta.status);
+            rowData[0] = titleWrap.innerHTML;
+
+            rowData[7] = updateDetailValue(rowData[7], "Link Check Status", meta.status || "Unknown");
+            rowData[7] = updateDetailValue(rowData[7], "Link Check Time", meta.checkedAt || "Unknown");
+            rowData[7] = updateDetailValue(rowData[7], "Link Check Detail", meta.detail || "Unknown");
+            table.row(idx).data(rowData);
+          });
+          table.draw(false);
+          return true;
+        };
+
+        const pollId = setInterval(function () {
+          if (tryApply()) clearInterval(pollId);
+        }, 300);
+        setTimeout(function () { clearInterval(pollId); }, 10000);
       }
     })
     .catch(function () {
@@ -1094,5 +1190,6 @@ document.addEventListener("DOMContentLoaded", function () {
 ```
 
 ::: {.last-updated}
-Last updated: `r last_update`
+Latest entry created: <span id="latest-row-created">`r latest_row_created`</span> <br /> Latest entry update: <span id="latest-row-updated">`r latest_row_updated`</span><br>
+Page build updated: `r last_update`
 :::
