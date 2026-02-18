@@ -6,6 +6,9 @@ Description: Interactive dashboard for visualizing Real World Data Working Group
 Depends: R (>= 4.0.0)
 Imports:
     googlesheets4,
+    googledrive,
+    httr2,
+    cellranger,
     dplyr,
     ggplot2,
     plotly,
@@ -16,4 +19,3 @@ Imports:
     rmarkdown,
     knitr,
     RColorBrewer
-

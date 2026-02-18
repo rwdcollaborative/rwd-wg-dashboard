@@ -6,6 +6,7 @@ A professional, interactive dashboard for visualizing Real World Data (RWD) Work
 
 - **Real-time Data Loading**: Fetches data directly from public Google Sheets on each page visit
 - **Interactive Visualizations**: Beautiful, interactive charts powered by Plotly
+- **Structured Data Entry**: Browser-based submission form with validation and optional Google Apps Script writeback
 - **Professional Design**: Modern, responsive UI with custom theming
 - **Automated Deployment**: GitHub Actions automatically builds and deploys to GitHub Pages
 - **Zero Maintenance**: No server required - fully static site hosted on GitHub Pages
@@ -46,7 +47,58 @@ make install
 SHEET_URL <- "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
 ```
 
-### 3. Customize the Dashboard
+### 3. Configure Submission Form (Google Apps Script)
+
+The `submit.qmd` page can write new entries to the `Inventory` tab through a Google Apps Script Web App.
+
+1. Open your Google Sheet and create an `Options` tab (recommended) with one column per dropdown list:
+   - `Type`
+   - `Topic`
+   - `RWD Type`
+   - `Intended Audience`
+   - `Artifacts Included`
+   - `Availability`
+   - `Credentials Offered`
+2. Seed options in one of two ways:
+   - Import `data/options_template.csv` into the `Options` tab (recommended baseline from current inventory values), or
+   - Enter your own allowed values under each header column.
+3. Create a new Apps Script project from the same sheet and paste in `apps_script/Code.gs`.
+4. Add these metadata headers to row 2 of the `Inventory` sheet (you can hide these columns):
+   - `Meta Created At`
+   - `Meta Updated At`
+   - `Meta Source`
+   - `Meta URL Status`
+   - `Meta URL Checked At`
+   - `Meta URL Check Detail`
+   The script writes only to these metadata columns and does not overwrite inventory data columns.
+5. Deploy as a Web App:
+   - Execute as: `Me`
+   - Who has access: `Anyone` (or your preferred allowed audience)
+6. Set `defaultSubmitUrl` in `submit.qmd` to your Web App `/exec` URL.
+7. Optional smoke test: open the `/exec` URL in a browser and confirm it returns JSON with `ok: true`.
+
+With this setup:
+- Form submissions write `Meta Created At`, `Meta Updated At`, and `Meta Source = form`.
+- Direct sheet edits automatically update `Meta Updated At` and `Meta Source = manual` via `onEdit(e)`.
+- The dashboard freshness cards use these metadata columns when available.
+- URL health can be tracked in `Meta URL Status`, `Meta URL Checked At`, and `Meta URL Check Detail`.
+
+### 3b. Optional Daily URL Checker (GitHub Action)
+
+This repository includes `.github/workflows/url-link-check.yml` to check all inventory URLs daily and write link-health metadata back to the sheet.
+
+Required repository secrets:
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: full JSON key for a Google service account
+- `RWD_SHEET_ID`: spreadsheet ID (the long ID in the sheet URL)
+
+Important:
+- Share the Google Sheet with the service account email as an Editor.
+- The checker updates only:
+  - `Meta URL Status`
+  - `Meta URL Checked At`
+  - `Meta URL Check Detail`
+
+### 4. Customize the Dashboard
 
 Modify `index.qmd` to match your data structure:
 
@@ -55,7 +107,7 @@ Modify `index.qmd` to match your data structure:
 - Customize visualizations
 - Add or remove sections as needed
 
-### 4. Preview Locally
+### 5. Preview Locally
 
 ```bash
 # Start live preview with auto-reload
@@ -120,8 +172,13 @@ rwd_wg/
 ├── .github/
 │   └── workflows/
 │       └── publish.yml      # GitHub Actions deployment workflow
+├── apps_script/
+│   └── Code.gs              # Google Apps Script endpoint for form submissions
+├── data/
+│   └── options_template.csv # Starter options list for the Options tab
 ├── _quarto.yml              # Quarto project configuration
 ├── index.qmd                # Main dashboard page
+├── submit.qmd               # Data entry form page
 ├── about.qmd                # About page
 ├── custom.scss              # Custom SCSS theming
 ├── styles.css               # Additional CSS styles
@@ -202,4 +259,3 @@ This project is open source and available under the [MIT License](LICENSE).
 ---
 
 **Need help?** Open an issue or contact the project maintainers.
-

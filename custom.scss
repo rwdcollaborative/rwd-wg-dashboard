@@ -48,6 +48,14 @@ $danger: #e74c3c;
   letter-spacing: 1px;
 }
 
+.metric-detail {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: $primary;
+  margin: 0.5rem 0;
+  line-height: 1.3;
+}
+
 .chart-container {
   background: white;
   border-radius: 8px;
@@ -63,4 +71,3 @@ $danger: #e74c3c;
   text-align: right;
   margin-top: 1rem;
 }
-

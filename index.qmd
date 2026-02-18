@@ -10,6 +10,7 @@ format:
 
 # Load required libraries
 library(googlesheets4)
+library(googledrive)
 library(dplyr)
 library(ggplot2)
 library(plotly)
@@ -20,6 +21,7 @@ library(RColorBrewer)
 
 # Disable authentication for public sheets
 gs4_deauth()
+drive_deauth()
 
 # Helper function to parse CSV-style quoted strings from Google Sheets
 parse_csv_string <- function(x) {
@@ -34,14 +36,70 @@ parse_csv_string <- function(x) {
   parsed <- gsub('\\\\"', '"', parsed)
   return(trimws(parsed))
 }
+
+format_latest_meta_time <- function(df, column_name, sheet_tz = "UTC") {
+  if (!column_name %in% names(df)) return("Not configured")
+
+  values <- df[[column_name]]
+  parsed <- NULL
+
+  if (inherits(values, c("POSIXct", "POSIXt"))) {
+    parsed <- as.POSIXct(values, tz = "UTC")
+  } else if (inherits(values, "Date")) {
+    parsed <- as.POSIXct(values, tz = "UTC")
+  } else {
+    text <- trimws(as.character(values))
+    text[text == ""] <- NA
+    text <- ifelse(grepl("Z$", text), sub("Z$", "+0000", text), text)
+    text <- gsub("([+-][0-9]{2}):([0-9]{2})$", "\\1\\2", text)
+    parsed <- suppressWarnings(as.POSIXct(
+      text,
+      tz = "UTC",
+      tryFormats = c(
+        "%Y-%m-%dT%H:%M:%OS%z",
+        "%Y-%m-%dT%H:%M:%OS",
+        "%Y-%m-%d %H:%M:%OS",
+        "%Y/%m/%d %H:%M:%OS",
+        "%m/%d/%Y %H:%M:%OS",
+        "%m/%d/%Y %H:%M",
+        "%Y-%m-%d"
+      )
+    ))
+  }
+
+  parsed <- parsed[!is.na(parsed)]
+  if (length(parsed) == 0) return("Unavailable")
+
+  latest <- with_tz(max(parsed), tzone = sheet_tz)
+  format(latest, "%B %d, %Y at %I:%M %p %Z")
+}
 ```
 
 ::: {.dashboard-header}
 # Real-World Data Training Resource Inventory
 ### Interactive Dashboard
 
-Explore educational and training Real World Data resources from across CTSA institutions and beyond. This dashboard provides real-time insights from our collaborative [Google Sheets inventory](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit), contributions welcome!
+Explore educational and training Real World Data resources from across CTSA institutions and beyond.
 :::
+
+```{=html}
+<div class="intro-modal" id="intro-modal" aria-hidden="true">
+  <div class="intro-modal-backdrop" data-close-intro></div>
+  <div class="intro-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="intro-modal-title">
+    <button type="button" class="intro-modal-close" id="intro-modal-close" aria-label="Close">×</button>
+    <h2 id="intro-modal-title">Welcome to the CTSA RWD Inventory</h2>
+    <p>
+      This inventory highlights educational assets that support real-world data training across CTSA hubs, CTRs, and related communities.
+    </p>
+    <p>
+      Want to add a resource? Use the <b>Submit Resource</b> link in the top menu to contribute new entries.
+    </p>
+    <div class="intro-modal-actions">
+      <button type="button" class="intro-continue-btn" id="intro-modal-continue">Continue to the Inventory</button>
+    </div>
+  </div>
+</div>
+```
 
 ```{r load-data}
 #| cache: false
@@ -53,10 +111,24 @@ SHEET_URL <- "https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwET
 tryCatch({
   # Read the Inventory tab (skip first row which is headers grouping)
   data_raw <- read_sheet(SHEET_URL, sheet = "Inventory", skip = 1)
+  normalized_names <- trimws(names(data_raw))
+  names(data_raw) <- normalized_names
+  meta_created_col <- names(data_raw)[tolower(normalized_names) == "meta created at"][1]
+  meta_updated_col <- names(data_raw)[tolower(normalized_names) == "meta updated at"][1]
+  meta_url_status_col <- names(data_raw)[tolower(normalized_names) == "meta url status"][1]
+  meta_url_checked_col <- names(data_raw)[tolower(normalized_names) == "meta url checked at"][1]
+  meta_url_detail_col <- names(data_raw)[tolower(normalized_names) == "meta url check detail"][1]
   
   # Clean up the data - remove completely empty rows
   data <- data_raw %>%
     filter(!is.na(Title) & Title != "" & Title != "Title") %>%
+    mutate(
+      `Meta Created At` = if (!is.na(meta_created_col)) .data[[meta_created_col]] else NA_character_,
+      `Meta Updated At` = if (!is.na(meta_updated_col)) .data[[meta_updated_col]] else NA_character_,
+      `Meta URL Status` = if (!is.na(meta_url_status_col)) .data[[meta_url_status_col]] else NA_character_,
+      `Meta URL Checked At` = if (!is.na(meta_url_checked_col)) .data[[meta_url_checked_col]] else NA_character_,
+      `Meta URL Check Detail` = if (!is.na(meta_url_detail_col)) .data[[meta_url_detail_col]] else NA_character_
+    ) %>%
     # Select key columns of interest
     select(
       Title,
@@ -67,13 +139,56 @@ tryCatch({
       `URL(s)`,
       Description,
       `Intended Audience`,
-      Availability = starts_with("Availability")
+      Availability = starts_with("Availability"),
+      `Meta Created At`,
+      `Meta Updated At`,
+      `Meta URL Status`,
+      `Meta URL Checked At`,
+      `Meta URL Check Detail`
     )
   
 }, error = function(e) {
   stop(paste("Error loading data from Google Sheets:", e$message, 
              "\nMake sure the sheet is public and the URL is correct."))
 })
+
+if (!"Meta Created At" %in% names(data)) data$`Meta Created At` <- NA_character_
+if (!"Meta Updated At" %in% names(data)) data$`Meta Updated At` <- NA_character_
+if (!"Meta URL Status" %in% names(data)) data$`Meta URL Status` <- NA_character_
+if (!"Meta URL Checked At" %in% names(data)) data$`Meta URL Checked At` <- NA_character_
+if (!"Meta URL Check Detail" %in% names(data)) data$`Meta URL Check Detail` <- NA_character_
+
+# Data freshness indicators
+sheet_last_modified <- "Unavailable"
+sheet_tz <- "UTC"
+latest_row_created <- "Not configured"
+latest_row_updated <- "Not configured"
+
+tryCatch({
+  sheet_meta <- gs4_get(SHEET_URL)
+  sheet_tz <- if (!is.null(sheet_meta$time_zone) && nzchar(sheet_meta$time_zone)) sheet_meta$time_zone else "UTC"
+  drive_info <- drive_get(as_id(sheet_meta$spreadsheet_id))
+  modified_raw <- drive_info$drive_resource[[1]]$modifiedTime
+
+  if (!is.null(modified_raw) && nzchar(modified_raw)) {
+    modified_time <- with_tz(ymd_hms(modified_raw, tz = "UTC"), tzone = sheet_tz)
+    sheet_last_modified <- format(modified_time, "%B %d, %Y at %I:%M %p %Z")
+  }
+}, error = function(e) {
+  sheet_last_modified <<- "Unavailable"
+})
+
+latest_row_created <- if (exists("meta_created_col") && !is.na(meta_created_col)) {
+  format_latest_meta_time(data_raw, meta_created_col, sheet_tz)
+} else {
+  "Not configured"
+}
+latest_row_updated <- if (exists("meta_updated_col") && !is.na(meta_updated_col)) {
+  format_latest_meta_time(data_raw, meta_updated_col, sheet_tz)
+} else {
+  "Not configured"
+}
+dead_links_count <- sum(tolower(trimws(as.character(data$`Meta URL Status`))) == "dead", na.rm = TRUE)
 
 # Get last update time
 last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
@@ -99,6 +214,26 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 ::: {.metric-card}
 <div class="metric-label">RWD Topics</div>
 <div class="metric-value">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Sheet Last Modified</div>
+<div class="metric-detail" id="sheet-last-modified">`r sheet_last_modified`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Latest Row Created</div>
+<div class="metric-detail" id="latest-row-created">`r latest_row_created`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Latest Row Updated</div>
+<div class="metric-detail" id="latest-row-updated">`r latest_row_updated`</div>
+:::
+
+::: {.metric-card}
+<div class="metric-label">Dead Links</div>
+<div class="metric-value">`r dead_links_count`</div>
 :::
 
 :::
@@ -318,6 +453,32 @@ safe_text <- function(x) {
   ifelse(is.na(x) | trimws(x) == "", "Not provided", as.character(htmltools::htmlEscape(x)))
 }
 
+url_status_chip <- function(x) {
+  raw <- tolower(trimws(as.character(x)))
+  status <- ifelse(raw %in% c("ok", "dead", "warn"), raw, "unknown")
+  label <- dplyr::case_when(
+    status == "ok" ~ "Link Check: OK",
+    status == "dead" ~ "Link Check: Dead",
+    status == "warn" ~ "Link Check: Warn",
+    TRUE ~ "Link Check: Unknown"
+  )
+  paste0(
+    '<span class="url-status-chip status-', status, '" title="', label, '">',
+    '<span class="url-status-dot"></span>',
+    label,
+    '</span>'
+  )
+}
+
+detail_row_if_present <- function(label, value, empty_text = "Unknown") {
+  display_value <- as.character(value)
+  if (is.na(value) || trimws(display_value) == "") display_value <- empty_text
+  paste0(
+    '<div class="detail-row"><span class="detail-label">', label,
+    '</span><span class="detail-value">', as.character(htmltools::htmlEscape(display_value)), '</span></div>'
+  )
+}
+
 # Build compact rows plus expandable details
 data_display <- data %>%
   mutate(
@@ -333,6 +494,7 @@ data_display <- data %>%
     Title_Cell = paste0(
       '<div class="inventory-title" title="', Title_Tooltip, '">', safe_text(Title), '</div>',
       '<div class="inventory-meta">',
+      url_status_chip(`Meta URL Status`),
       '<span class="meta-chip">Type: ', safe_text(Type), '</span>',
       '<span class="meta-chip">RWD: ', safe_text(`RWD Type`), '</span>',
       '<span class="meta-chip">Availability: ', safe_text(Availability), '</span>',
@@ -350,6 +512,11 @@ data_display <- data %>%
       '<div class="detail-row"><span class="detail-label">RWD Type</span><span class="detail-value">', safe_text(`RWD Type`), '</span></div>',
       '<div class="detail-row"><span class="detail-label">Intended Audience</span><span class="detail-value">', safe_text(`Intended Audience`), '</span></div>',
       '<div class="detail-row"><span class="detail-label">All URLs</span><span class="detail-value">', safe_text(`URL(s)`), '</span></div>',
+      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Status", `Meta URL Status`[[i]]), character(1)),
+      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Time", `Meta URL Checked At`[[i]]), character(1)),
+      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Detail", `Meta URL Check Detail`[[i]]), character(1)),
+      vapply(seq_along(Title), function(i) detail_row_if_present("Created", `Meta Created At`[[i]]), character(1)),
+      vapply(seq_along(Title), function(i) detail_row_if_present("Last Updated", `Meta Updated At`[[i]]), character(1)),
       '</div>'
     )
   ) %>%
@@ -723,6 +890,205 @@ document.addEventListener("DOMContentLoaded", function () {
   }, 300);
   setTimeout(function () { clearInterval(bindIntervalId); }, 10000);
   setTimeout(function () { clearInterval(tableIntervalId); }, 10000);
+});
+</script>
+```
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const sheetModifiedEl = document.getElementById("sheet-last-modified");
+  const latestCreatedEl = document.getElementById("latest-row-created");
+  const latestUpdatedEl = document.getElementById("latest-row-updated");
+  if (!latestCreatedEl && !latestUpdatedEl && !sheetModifiedEl) return;
+
+  const SHEET_ID = "1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s";
+  const SHEET_NAME = "Inventory";
+  const GVIZ_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+    "/gviz/tq?sheet=" + encodeURIComponent(SHEET_NAME) +
+    "&range=A2:ZZ&tq=&tqx=out:json";
+
+  function parseGvizJson(text) {
+    const start = text.indexOf("(");
+    const end = text.lastIndexOf(")");
+    if (start === -1 || end === -1 || end <= start) throw new Error("Invalid GViz response");
+    return JSON.parse(text.slice(start + 1, end));
+  }
+
+  function parseTimestamp(value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+
+    const gvizDate = text.match(/^Date\((.+)\)$/);
+    if (gvizDate) {
+      const parts = gvizDate[1].split(",").map(function (x) { return parseInt(x.trim(), 10); });
+      if (parts.length >= 3 && parts.every(function (x) { return !isNaN(x); })) {
+        return new Date(Date.UTC(
+          parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0
+        ));
+      }
+    }
+
+    const parsed = new Date(text);
+    if (isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function formatDate(date) {
+    return date.toLocaleString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short"
+    });
+  }
+
+  fetch(GVIZ_URL)
+    .then(function (response) {
+      if (!response.ok) throw new Error("Failed to load sheet data");
+      return response.text();
+    })
+    .then(function (text) {
+      const parsed = parseGvizJson(text);
+      const table = parsed.table || {};
+      const cols = table.cols || [];
+      const rows = table.rows || [];
+
+      let dataRows = rows;
+      let colNames = cols.map(function (c) { return (c && c.label ? String(c.label).trim() : ""); });
+      let createdIdx = colNames.indexOf("Meta Created At");
+      let updatedIdx = colNames.indexOf("Meta Updated At");
+
+      // Fallback: some GViz responses expose headers as the first data row.
+      if ((createdIdx < 0 || updatedIdx < 0) && rows.length > 0) {
+        const firstRowCells = rows[0].c || [];
+        const headerFromFirstRow = firstRowCells.map(function (cell) {
+          const value = cell && (cell.f !== undefined && cell.f !== null ? cell.f : cell.v);
+          return value === undefined || value === null ? "" : String(value).trim();
+        });
+        const fallbackCreatedIdx = headerFromFirstRow.indexOf("Meta Created At");
+        const fallbackUpdatedIdx = headerFromFirstRow.indexOf("Meta Updated At");
+        if (fallbackCreatedIdx >= 0 || fallbackUpdatedIdx >= 0) {
+          createdIdx = fallbackCreatedIdx;
+          updatedIdx = fallbackUpdatedIdx;
+          dataRows = rows.slice(1);
+        }
+      }
+
+      let latestCreated = null;
+      let latestUpdated = null;
+
+      dataRows.forEach(function (row) {
+        const cells = (row && row.c) ? row.c : [];
+        if (createdIdx >= 0) {
+          const createdVal = cells[createdIdx] ? cells[createdIdx].v : null;
+          const createdDate = parseTimestamp(createdVal);
+          if (createdDate && (!latestCreated || createdDate > latestCreated)) latestCreated = createdDate;
+        }
+        if (updatedIdx >= 0) {
+          const updatedVal = cells[updatedIdx] ? cells[updatedIdx].v : null;
+          const updatedDate = parseTimestamp(updatedVal);
+          if (updatedDate && (!latestUpdated || updatedDate > latestUpdated)) latestUpdated = updatedDate;
+        }
+      });
+
+      if (latestCreatedEl && createdIdx >= 0) {
+        latestCreatedEl.textContent = latestCreated ? formatDate(latestCreated) : "Unavailable";
+      } else if (latestCreatedEl) {
+        latestCreatedEl.textContent = "Not configured";
+      }
+
+      if (latestUpdatedEl && updatedIdx >= 0) {
+        latestUpdatedEl.textContent = latestUpdated ? formatDate(latestUpdated) : "Unavailable";
+      } else if (latestUpdatedEl) {
+        latestUpdatedEl.textContent = "Not configured";
+      }
+
+      if (sheetModifiedEl) {
+        const mostRecent = [latestCreated, latestUpdated]
+          .filter(function (d) { return d instanceof Date; })
+          .sort(function (a, b) { return b - a; })[0];
+        if (mostRecent) sheetModifiedEl.textContent = formatDate(mostRecent);
+      }
+    })
+    .catch(function () {
+      // Keep server-rendered fallback values if live fetch fails.
+    });
+});
+</script>
+```
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("intro-modal");
+  const closeBtn = document.getElementById("intro-modal-close");
+  const continueBtn = document.getElementById("intro-modal-continue");
+  const SEEN_KEY = "rwd_inventory_intro_seen_v1";
+  let lastFocused = null;
+
+  if (!modal) return;
+
+  function markSeen() {
+    try {
+      localStorage.setItem(SEEN_KEY, "1");
+    } catch (error) {
+      // no-op; if storage is blocked, modal may show again on next visit
+    }
+  }
+
+  function hasSeen() {
+    try {
+      return localStorage.getItem(SEEN_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function shouldForceShow() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return params.get("showIntro") === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function openModal() {
+    lastFocused = document.activeElement;
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("intro-modal-open");
+    if (continueBtn) continueBtn.focus();
+  }
+
+  function closeModal() {
+    markSeen();
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("intro-modal-open");
+    if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+  }
+
+  if (shouldForceShow() || !hasSeen()) openModal();
+
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (continueBtn) continueBtn.addEventListener("click", closeModal);
+
+  modal.addEventListener("click", function (event) {
+    if (event.target && event.target.hasAttribute("data-close-intro")) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal.classList.contains("is-open")) {
+      closeModal();
+    }
+  });
 });
 </script>
 ```

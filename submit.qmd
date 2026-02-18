@@ -1,0 +1,777 @@
+---
+title: "Submit Resource"
+format:
+  html:
+    page-layout: full
+---
+
+::: {.dashboard-header}
+# Submit an RWD Training Resource
+#### Whether new, old, at your organization or elsewhere, if it relates to training for the use of real world data it is welcome!
+:::
+
+::: {.submission-shell}
+```{=html}
+<form id="resource-form" class="submission-card" novalidate>
+  <div class="section-block">
+    <div class="section-title-row">
+      <h3>1. Title (Required)</h3>
+      <button type="button" class="scope-link-btn" id="scope-modal-open">What Can I Submit?</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label for="title">Title <span class="required">Required</span> <span class="info-icon" tabindex="0" data-tooltip="Resource title as it should appear in the inventory." aria-label="More information about Title">i</span></label>
+        <input id="title" name="title" type="text" class="form-control" maxlength="300" required>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <h3>2. Your Info (Recommended)</h3>
+    <p class="section-help">Adding your contact information helps with attribution and follow-up.</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="contributor-name">Your Name <span class="info-icon" tabindex="0" data-tooltip="Your name as you would like it to be listed in the inventory." aria-label="More information about Your Name">i</span></label>
+        <input id="contributor-name" name="contributor_name" type="text" class="form-control" maxlength="200">
+      </div>
+
+      <div class="form-group">
+        <label for="contributor-email">Your Email <span class="info-icon" tabindex="0" data-tooltip="Your preferred contact email." aria-label="More information about Your Email">i</span></label>
+        <input id="contributor-email" name="contributor_email" type="email" class="form-control" maxlength="200">
+      </div>
+
+      <div class="form-group full">
+        <label for="contributor-organization">Your Organization <span class="info-icon" tabindex="0" data-tooltip="Your organization. Please attempt to standardize entries according to other entries in the inventory (e.g. if 'UC Berkeley' is already present use that rather than 'University of California, Berkeley')" aria-label="More information about Your Organization">i</span></label>
+        <input id="contributor-organization" name="contributor_organization" type="text" class="form-control" maxlength="300">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-block">
+    <h3>3. Recommended Information</h3>
+    <p class="section-help">While not required, we recommend including the following information to aid in organization and discovery.</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="type">Type <span class="info-icon" tabindex="0" data-tooltip="The 'type' of the entry. You may select more than one." aria-label="More information about Type">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="type-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="type" class="checkbox-group" role="group" aria-label="Type options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <small class="recommendation-hint" id="type-hint">Please select at least one</small>
+        <div class="other-input-wrap" id="other-type-wrap" data-visible="false">
+          <label for="other-type">Other Type</label>
+          <input id="other-type" name="other_type" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="topic">Topic <span class="info-icon" tabindex="0" data-tooltip="Topics covered by the asset. Select all that apply." aria-label="More information about Topic">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="topic-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="topic" class="checkbox-group" role="group" aria-label="Topic options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <small class="recommendation-hint" id="topic-hint">Please select at least one</small>
+        <div class="other-input-wrap" id="other-topic-wrap" data-visible="false">
+          <label for="other-topic">Other Topic</label>
+          <input id="other-topic" name="other_topic" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="rwd-type">RWD Type <span class="info-icon" tabindex="0" data-tooltip="The 'type' of RWD covered by the asset." aria-label="More information about RWD Type">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="rwd-type-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="rwd-type" class="checkbox-group" role="group" aria-label="RWD Type options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <small class="recommendation-hint" id="rwd-type-hint">Please select at least one</small>
+        <div class="other-input-wrap" id="other-rwd-type-wrap" data-visible="false">
+          <label for="other-rwd-type">Other RWD Type</label>
+          <input id="other-rwd-type" name="other_rwd_type" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label for="urls">URL(s) <span class="info-icon" tabindex="0" data-tooltip="A URL to the entry or information about it, if available. You may enter multiple URLs if available." aria-label="More information about URLs">i</span></label>
+        <textarea id="urls" name="urls" rows="3" class="form-control" placeholder="Add one URL per line, or a comma-separated list."></textarea>
+        <small class="recommendation-hint" id="urls-hint">Please enter at least one</small>
+      </div>
+
+      <div class="form-group full">
+        <label for="organization">Organization <span class="info-icon" tabindex="0" data-tooltip="If known, the organization sponsoring the asset. Please attempt to standardize entries according to other entries in the inventory (e.g. if 'UC Berkeley' is already present use that rather than 'University of California, Berkeley')." aria-label="More information about Organization">i</span></label>
+        <input id="organization" name="organization" type="text" class="form-control" maxlength="300">
+        <small class="recommendation-hint" id="organization-hint">Please enter the name of the organization that developed or hosts the resource</small>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description <span class="info-icon" tabindex="0" data-tooltip="A longer description of the entity. If the entry provides a description, use that, but feel free to add additional context or commentary." aria-label="More information about Description">i</span></label>
+        <textarea id="description" name="description" rows="4" class="form-control"></textarea>
+        <small class="recommendation-hint" id="description-hint">Please add a description of the resource</small>
+      </div>
+    </div>
+  </div>
+
+  <details class="section-block optional-section">
+    <summary>4. Optional Details (Click to Expand)</summary>
+    <div class="form-grid optional-grid">
+      <p class="section-help">You are welcome to provide additional information about the resource if known.</p>
+      <div class="form-group">
+        <label for="intended-audience">Intended Audience <span class="info-icon" tabindex="0" data-tooltip="The intended audience for the asset, if known. Select all that apply." aria-label="More information about Intended Audience">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="intended-audience-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="intended-audience" class="checkbox-group" role="group" aria-label="Intended Audience options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <div class="other-input-wrap" id="other-intended-audience-wrap" data-visible="false">
+          <label for="other-intended-audience">Other Intended Audience</label>
+          <input id="other-intended-audience" name="other_intended_audience" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="artifacts-included">Artifacts Included <span class="info-icon" tabindex="0" data-tooltip="Although we are tracking 'initiatives' separate from 'artifacts' (see instructions), you may also enter artifacts that are included in this entry. For example, if this entry describes an open-access course that also includes example code or datasets, you can list those here. Use your best judgement in assessing whether included artifacts described here should be their own asset entries in this sheet; example code that is useful on its own (or as part of another initiative) may deserve its own entry, while example code that is highly specific to this entry may not." aria-label="More information about Artifacts Included">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="artifacts-included-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="artifacts-included" class="checkbox-group" role="group" aria-label="Artifacts Included options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <div class="other-input-wrap" id="other-artifacts-included-wrap" data-visible="false">
+          <label for="other-artifacts-included">Other Artifacts Included</label>
+          <input id="other-artifacts-included" name="other_artifacts_included" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="availability">Availability <span class="info-icon" tabindex="0" data-tooltip="Information about the availability of the asset. Note that this field includes information about public vs private (restricted access) assets, as well as timeframe of availability. Select all that apply." aria-label="More information about Availability">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="availability-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="availability" class="checkbox-group" role="group" aria-label="Availability options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <div class="other-input-wrap" id="other-availability-wrap" data-visible="false">
+          <label for="other-availability">Other Availability</label>
+          <input id="other-availability" name="other_availability" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="credentials-offered">Credentials Offered <span class="info-icon" tabindex="0" data-tooltip="Information about credentials that may be associated with the asset." aria-label="More information about Credentials Offered">i</span></label>
+        <details class="multi-select-dropdown" open>
+          <summary><span class="multi-select-summary" id="credentials-offered-summary">Select one or more</span></summary>
+          <div class="multi-select-panel">
+            <div id="credentials-offered" class="checkbox-group" role="group" aria-label="Credentials Offered options"></div>
+          </div>
+        </details>
+        <small class="field-help">Select all that apply.</small>
+        <div class="other-input-wrap" id="other-credentials-offered-wrap" data-visible="false">
+          <label for="other-credentials-offered">Other Credentials Offered</label>
+          <input id="other-credentials-offered" name="other_credentials_offered" type="text" class="form-control" maxlength="300" disabled>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="comments">Comments <span class="info-icon" tabindex="0" data-tooltip="Additional comments or notes relevant to this resource." aria-label="More information about Comments">i</span></label>
+        <textarea id="comments" name="comments" rows="4" class="form-control"></textarea>
+      </div>
+    </div>
+  </details>
+
+  <div class="form-actions">
+    <button id="submit-button" type="submit" class="btn btn-primary">Submit Resource</button>
+    <button id="reset-button" type="reset" class="btn btn-outline-secondary">Reset Form</button>
+  </div>
+
+  <p id="form-status" class="status-text" role="status" aria-live="polite"></p>
+</form>
+
+<div class="scope-modal" id="scope-modal" aria-hidden="true">
+  <div class="scope-modal-backdrop" data-close-scope></div>
+  <div class="scope-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="scope-modal-title">
+    <button type="button" class="scope-modal-close" id="scope-modal-close" aria-label="Close">×</button>
+    <h2 id="scope-modal-title">What Can I Submit?</h2>
+
+    <h3>Inventory Scope</h3>
+    <p>
+      The CTSA Real World Data (RWD) Inventory team is developing a repository of existing and prospective RWD-focused training assets across the CTSA program, CTRs, and beyond, fostering collaboration and accessible, high-quality RWD training.
+    </p>
+    <p>
+      Relevant assets may include topics such as data collection and provenance, clinical data models and their use (for example OMOP), interoperability standards (for example FHIR or Common Data Elements), evaluation of bias in RWD, best practices and analytic approaches for ethical RWD research (including AI/ML and responsible use of generative AI), datasets for training, and clinical decision support tools that use RWD.
+    </p>
+    <p>
+      Free and broadly accessible assets are especially encouraged. Non-free or restricted-access assets are also welcome to help survey the training landscape. If submitting such assets, include licensing, cost, or access restrictions when possible.
+    </p>
+    <p>
+      Examples of out-of-scope items include organization-specific research data collection tools, proprietary data dictionaries without broader application, and items without RWD educational value.
+    </p>
+
+    <h3>Glossary</h3>
+    <dl class="scope-glossary">
+      <dt>Real World Data (RWD)</dt>
+      <dd>Data relating to patient health status and/or the delivery of health care routinely collected from a variety of sources, such as EHR, claims, registries, and digital health technologies (definition courtesy FDA).</dd>
+      <dt>Educational Initiatives</dt>
+      <dd>Structured learning activities or programs focused on collecting, using, or maintaining RWD, such as seminars, workshops, tutorials, hackathons, conferences, and courses.</dd>
+      <dt>Educational Artifacts</dt>
+      <dd>Smaller individual resources useful within an initiative, such as videos, websites, datasets, or reusable components.</dd>
+      <dt>Educational Assets</dt>
+      <dd>An organizational term that encompasses both artifacts and initiatives.</dd>
+    </dl>
+  </div>
+</div>
+```
+:::
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const CONFIG = {
+    sheetId: "1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s",
+    optionsSheet: "Options",
+    defaultSubmitUrl: "https://script.google.com/macros/s/AKfycbx_bjieGKGCQwoDFenkOK0A-IbcCqZb0VgMogDqaG0v-AzTV-NQ8PchJqBTJniJvbDDyg/exec"
+  };
+
+  const FALLBACK_OPTIONS = {
+    "Type": ["Educational Initiative", "Educational Artifact", "Dataset", "Tool", "Course", "Workshop", "Other"],
+    "Topic": ["Data collection and provenance", "Clinical data models", "Interoperability standards", "Bias in RWD", "Ethics", "AI/ML", "Clinical decision support", "Other"],
+    "RWD Type": ["Electronic Health Records", "Claims Data", "Registry Data", "Digital Health Data", "Survey Data", "Other"],
+    "Intended Audience": ["Students", "Researchers", "Clinicians", "Data Scientists", "Institutional Leaders", "Other"],
+    "Artifacts Included": ["Video", "Slides", "Dataset", "Code", "Template", "Website", "Other"],
+    "Availability": ["Free", "Restricted Access", "Institutional Access", "Paid", "Other"],
+    "Credentials Offered": ["Certificate", "CME", "Badge", "Course Credit", "None", "Other"]
+  };
+
+  const optionBindings = [
+    { fieldId: "type", optionKey: "Type", summaryId: "type-summary", hintId: "type-hint", otherWrapId: "other-type-wrap", otherInputId: "other-type" },
+    { fieldId: "topic", optionKey: "Topic", summaryId: "topic-summary", hintId: "topic-hint", otherWrapId: "other-topic-wrap", otherInputId: "other-topic" },
+    { fieldId: "rwd-type", optionKey: "RWD Type", summaryId: "rwd-type-summary", hintId: "rwd-type-hint", otherWrapId: "other-rwd-type-wrap", otherInputId: "other-rwd-type" },
+    { fieldId: "intended-audience", optionKey: "Intended Audience", summaryId: "intended-audience-summary", otherWrapId: "other-intended-audience-wrap", otherInputId: "other-intended-audience" },
+    { fieldId: "artifacts-included", optionKey: "Artifacts Included", summaryId: "artifacts-included-summary", otherWrapId: "other-artifacts-included-wrap", otherInputId: "other-artifacts-included" },
+    { fieldId: "availability", optionKey: "Availability", summaryId: "availability-summary", otherWrapId: "other-availability-wrap", otherInputId: "other-availability" },
+    { fieldId: "credentials-offered", optionKey: "Credentials Offered", summaryId: "credentials-offered-summary", otherWrapId: "other-credentials-offered-wrap", otherInputId: "other-credentials-offered" }
+  ];
+
+  const form = document.getElementById("resource-form");
+  const statusEl = document.getElementById("form-status");
+  const submitButton = document.getElementById("submit-button");
+  const urlsInput = document.getElementById("urls");
+  const organizationInput = document.getElementById("organization");
+  const descriptionInput = document.getElementById("description");
+  const scopeModal = document.getElementById("scope-modal");
+  const scopeModalOpen = document.getElementById("scope-modal-open");
+  const scopeModalClose = document.getElementById("scope-modal-close");
+  let lastFocusedBeforeModal = null;
+
+  function normalizeHeader(name) {
+    return String(name || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function uniqueNonEmpty(values) {
+    const seen = new Set();
+    const out = [];
+    values.forEach(function (value) {
+      const trimmed = String(value || "").trim();
+      if (!trimmed) return;
+      if (seen.has(trimmed.toLowerCase())) return;
+      seen.add(trimmed.toLowerCase());
+      out.push(trimmed);
+    });
+    return out;
+  }
+
+  function parseGviz(text) {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end === -1) throw new Error("Unexpected options response format");
+    const json = JSON.parse(text.slice(start, end + 1));
+    const table = json.table || {};
+    const columns = (table.cols || []).map(function (col) {
+      return col.label || col.id || "";
+    });
+    const rows = table.rows || [];
+
+    const options = {};
+    columns.forEach(function (colName, index) {
+      const values = rows
+        .map(function (row) {
+          const cell = row.c && row.c[index];
+          return cell ? cell.v : "";
+        })
+        .filter(function (value) {
+          return value !== null && value !== undefined;
+        })
+        .map(function (value) {
+          return String(value).trim();
+        });
+
+      const key = colName && colName.trim() ? colName.trim() : "Column " + (index + 1);
+      options[key] = uniqueNonEmpty(values);
+    });
+
+    return options;
+  }
+
+  async function loadOptionsFromSheet() {
+    const url = "https://docs.google.com/spreadsheets/d/" + encodeURIComponent(CONFIG.sheetId) +
+      "/gviz/tq?sheet=" + encodeURIComponent(CONFIG.optionsSheet) + "&tqx=out:json";
+
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) throw new Error("Unable to load options tab");
+    const text = await response.text();
+    return parseGviz(text);
+  }
+
+  function populateCheckboxGroup(fieldId, values) {
+    const container = document.getElementById(fieldId);
+    if (!container) return;
+
+    container.innerHTML = "";
+    uniqueNonEmpty(values).forEach(function (value, index) {
+      const optionId = fieldId + "-opt-" + index;
+      const label = document.createElement("label");
+      label.className = "checkbox-option";
+      label.setAttribute("for", optionId);
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = value;
+      input.id = optionId;
+      input.name = fieldId + "[]";
+
+      const text = document.createElement("span");
+      text.textContent = value;
+
+      label.appendChild(input);
+      label.appendChild(text);
+      container.appendChild(label);
+    });
+  }
+
+  function selectedValues(fieldId) {
+    const container = document.getElementById(fieldId);
+    if (!container) return [];
+
+    return Array.from(container.querySelectorAll("input[type='checkbox']:checked"))
+      .map(function (checkbox) {
+        return checkbox.value.trim();
+      })
+      .filter(Boolean);
+  }
+
+  function hasOtherSelected(fieldId) {
+    return selectedValues(fieldId).some(function (value) {
+      const lower = value.toLowerCase();
+      return lower === "other" || lower.startsWith("other ");
+    });
+  }
+
+  function toggleOtherInput(binding) {
+    const wrap = document.getElementById(binding.otherWrapId);
+    const input = document.getElementById(binding.otherInputId);
+    if (!wrap || !input) return;
+
+    const show = hasOtherSelected(binding.fieldId);
+    wrap.dataset.visible = show ? "true" : "false";
+    input.required = show;
+    input.disabled = !show;
+    if (!show) input.value = "";
+  }
+
+  function updateMultiSelectSummary(binding) {
+    const summaryEl = document.getElementById(binding.summaryId);
+    if (!summaryEl) return;
+
+    const count = selectedValues(binding.fieldId).length;
+    summaryEl.textContent = count === 0 ? "Select one or more" : count + " selected";
+  }
+
+  function setHintVisible(hintId, visible) {
+    const hint = document.getElementById(hintId);
+    if (!hint) return;
+    hint.classList.toggle("is-hidden", !visible);
+  }
+
+  function updateRecommendationHints() {
+    const urlsHint = document.getElementById("urls-hint");
+    optionBindings.forEach(function (binding) {
+      if (!binding.hintId) return;
+      setHintVisible(binding.hintId, selectedValues(binding.fieldId).length === 0);
+    });
+
+    if (urlsHint) {
+      const urlCheck = getUrlValidationState();
+      if (urlCheck.state === "missing") {
+        urlsHint.textContent = "Please enter at least one";
+        setHintVisible("urls-hint", true);
+      } else if (urlCheck.state === "invalid") {
+        urlsHint.textContent = "Please enter valid URL(s) with http(s) and a public domain (e.g., .org, .com)";
+        setHintVisible("urls-hint", true);
+      } else {
+        setHintVisible("urls-hint", false);
+      }
+    }
+
+    if (urlsInput) {
+      const urlCheck = getUrlValidationState();
+      urlsInput.classList.toggle("field-error", urlCheck.state === "invalid");
+    }
+
+    setHintVisible("organization-hint", !trimValue("organization"));
+    setHintVisible("description-hint", !trimValue("description"));
+  }
+
+  function encodeCsv(values) {
+    return values.map(function (value) {
+      const escaped = String(value).replace(/"/g, '""').trim();
+      if (escaped.indexOf(",") >= 0 || escaped.indexOf('"') >= 0) return '"' + escaped + '"';
+      return escaped;
+    }).join(", ");
+  }
+
+  function parseUrls(raw) {
+    return uniqueNonEmpty(
+      String(raw || "")
+        .split(/[\n,]+/)
+        .map(function (value) {
+          return String(value || "")
+            .trim()
+            .replace(/^<+|>+$/g, "")
+            .replace(/[),.;]+$/g, "");
+        })
+    );
+  }
+
+  function getUrlValidationState(rawValue) {
+    const raw = typeof rawValue === "string" ? rawValue : trimValue("urls");
+    const urls = parseUrls(raw);
+    if (urls.length === 0) return { state: "missing", urls: [] };
+
+    const invalid = urls.filter(function (value) {
+      return !isValidHttpUrl(value);
+    });
+    if (invalid.length > 0) return { state: "invalid", urls: urls, invalid: invalid };
+
+    return { state: "valid", urls: urls };
+  }
+
+  function isValidHttpUrl(value) {
+    const candidate = String(value || "").trim();
+    if (!candidate) return false;
+
+    let parsed = null;
+    if (typeof URL !== "undefined" && typeof URL.canParse === "function") {
+      if (URL.canParse(candidate)) parsed = new URL(candidate);
+    } else {
+      try {
+        parsed = new URL(candidate);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+
+    if (!parsed) return false;
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    if (!parsed.hostname) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host.indexOf(".") === -1) return false;
+    const parts = host.split(".");
+    const tld = parts[parts.length - 1] || "";
+    if (!/^[a-z]{2,63}$/.test(tld)) return false;
+    return true;
+  }
+
+  function trimValue(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+
+  function getRecordFromForm() {
+    const urls = parseUrls(trimValue("urls"));
+
+    return {
+      "Title": trimValue("title"),
+      "Type": encodeCsv(selectedValues("type")),
+      "Other Type": trimValue("other-type"),
+      "Topic": encodeCsv(selectedValues("topic")),
+      "Other Topic": trimValue("other-topic"),
+      "RWD Type": encodeCsv(selectedValues("rwd-type")),
+      "Other RWD Type": trimValue("other-rwd-type"),
+      "URL(s)": encodeCsv(urls),
+      "Organization": trimValue("organization"),
+      "Spacer 1": "",
+      "Contributor Name": trimValue("contributor-name"),
+      "Contributor Email": trimValue("contributor-email"),
+      "Contributor Organization": trimValue("contributor-organization"),
+      "Spacer 2": "",
+      "Description": trimValue("description"),
+      "Intended Audience": encodeCsv(selectedValues("intended-audience")),
+      "Other Intended Audience": trimValue("other-intended-audience"),
+      "Artifacts Included": encodeCsv(selectedValues("artifacts-included")),
+      "Other Artifacts Included": trimValue("other-artifacts-included"),
+      "Availability": encodeCsv(selectedValues("availability")),
+      "Other Availability": trimValue("other-availability"),
+      "Credentials Offered": encodeCsv(selectedValues("credentials-offered")),
+      "Other Credentials Offered": trimValue("other-credentials-offered"),
+      "Comments": trimValue("comments"),
+      "Column 1": ""
+    };
+  }
+
+  function setStatus(message, level) {
+    statusEl.textContent = message;
+    statusEl.className = "status-text " + (level || "");
+  }
+
+  function validateRecord(record) {
+    if (!record["Title"]) {
+      return { ok: false, message: "Title is required." };
+    }
+
+    const urlCheck = getUrlValidationState(trimValue("urls"));
+    if (urlCheck.state === "missing") {
+      return { ok: false, message: "Please enter at least one URL." };
+    }
+    if (urlCheck.state === "invalid") {
+      const firstInvalid = urlCheck.invalid && urlCheck.invalid.length > 0 ? urlCheck.invalid[0] : "URL";
+      return { ok: false, message: "Invalid URL detected: " + firstInvalid + ". Use full http(s) URLs with a public domain (e.g., .org, .com)." };
+    }
+
+    for (let i = 0; i < optionBindings.length; i += 1) {
+      const binding = optionBindings[i];
+      const otherValue = trimValue(binding.otherInputId);
+      if (hasOtherSelected(binding.fieldId) && !otherValue) {
+        const label = binding.optionKey;
+        return { ok: false, message: "Please fill '" + label + " -> Other' details." };
+      }
+    }
+
+    if (record["Contributor Email"]) {
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailPattern.test(record["Contributor Email"])) {
+        return { ok: false, message: "Contributor Email is not valid." };
+      }
+    }
+
+    return { ok: true, message: "" };
+  }
+
+  function missingRecommendedFields() {
+    const missing = [];
+
+    const contributorMissing = !trimValue("contributor-name") && !trimValue("contributor-email") && !trimValue("contributor-organization");
+    if (contributorMissing) missing.push("Contributor info");
+    if (selectedValues("type").length === 0) missing.push("Type");
+    if (selectedValues("topic").length === 0) missing.push("Topic");
+    if (selectedValues("rwd-type").length === 0) missing.push("RWD Type");
+    if (!trimValue("organization")) missing.push("Organization");
+    if (!trimValue("description")) missing.push("Description");
+
+    return missing;
+  }
+
+  function setSubmitting(isSubmitting) {
+    submitButton.disabled = isSubmitting;
+    submitButton.textContent = isSubmitting ? "Submitting..." : "Submit Resource";
+  }
+
+  async function submitRecord(record) {
+    const submitUrl = CONFIG.defaultSubmitUrl;
+    if (!submitUrl) {
+      throw new Error("Submission endpoint is not configured.");
+    }
+
+    const payload = {
+      source: "rwd-dashboard-submit-form",
+      submitted_at: new Date().toISOString(),
+      record: record
+    };
+
+    const response = await fetch(submitUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+
+    const bodyText = await response.text();
+    let body;
+    try {
+      body = JSON.parse(bodyText);
+    } catch (error) {
+      body = { ok: response.ok, message: bodyText };
+    }
+
+    if (!response.ok || body.ok === false) {
+      throw new Error(body.message || "Submission failed.");
+    }
+  }
+
+  function initializeOtherInputToggles() {
+    optionBindings.forEach(function (binding) {
+      const container = document.getElementById(binding.fieldId);
+      if (!container) return;
+      if (!container.dataset.otherBound) {
+        container.addEventListener("change", function () {
+          toggleOtherInput(binding);
+          updateMultiSelectSummary(binding);
+          updateRecommendationHints();
+        });
+        container.dataset.otherBound = "1";
+      }
+      toggleOtherInput(binding);
+      updateMultiSelectSummary(binding);
+    });
+    updateRecommendationHints();
+  }
+
+  function applyOptions(loadedOptions) {
+    const normalized = {};
+    Object.keys(loadedOptions).forEach(function (key) {
+      normalized[normalizeHeader(key)] = loadedOptions[key];
+    });
+
+    optionBindings.forEach(function (binding) {
+      const fallbackValues = FALLBACK_OPTIONS[binding.optionKey] || [];
+      const loadedValues = normalized[normalizeHeader(binding.optionKey)] || [];
+      const values = loadedValues.length > 0 ? loadedValues : fallbackValues;
+      populateCheckboxGroup(binding.fieldId, values);
+    });
+
+    initializeOtherInputToggles();
+  }
+
+  async function initializeOptions() {
+    try {
+      const options = await loadOptionsFromSheet();
+      applyOptions(options);
+      setStatus("Loaded options from the Options tab.", "status-muted");
+    } catch (error) {
+      applyOptions(FALLBACK_OPTIONS);
+      setStatus("Could not load live options from Google Sheets, using fallback option lists.", "status-warning");
+    }
+  }
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const record = getRecordFromForm();
+    const validation = validateRecord(record);
+    if (!validation.ok) {
+      updateRecommendationHints();
+      setStatus(validation.message, "status-error");
+      if (validation.message.indexOf("URL") >= 0 && urlsInput) urlsInput.focus();
+      return;
+    }
+
+    const missingRecommended = missingRecommendedFields();
+    if (missingRecommended.length > 0) {
+      setStatus("Recommended fields are missing: " + missingRecommended.join(", ") + ". Submission can continue.", "status-warning");
+    }
+
+    setSubmitting(true);
+
+    try {
+      await submitRecord(record);
+      setStatus("Submission sent successfully. Thank you for contributing.", "status-success");
+      form.reset();
+      initializeOtherInputToggles();
+    } catch (error) {
+      setStatus(error.message || "Submission failed.", "status-error");
+    } finally {
+      setSubmitting(false);
+    }
+  });
+
+  form.addEventListener("reset", function () {
+    setTimeout(function () {
+      setStatus("", "");
+      initializeOtherInputToggles();
+      updateRecommendationHints();
+    }, 0);
+  });
+
+  if (urlsInput) {
+    urlsInput.addEventListener("input", function () {
+      updateRecommendationHints();
+    });
+
+    urlsInput.addEventListener("blur", function () {
+      updateRecommendationHints();
+    });
+  }
+
+  if (organizationInput) {
+    organizationInput.addEventListener("input", function () {
+      updateRecommendationHints();
+    });
+  }
+
+  if (descriptionInput) {
+    descriptionInput.addEventListener("input", function () {
+      updateRecommendationHints();
+    });
+  }
+
+  function openScopeModal() {
+    if (!scopeModal) return;
+    lastFocusedBeforeModal = document.activeElement;
+    scopeModal.classList.add("is-open");
+    scopeModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("scope-modal-open");
+    if (scopeModalClose) scopeModalClose.focus();
+  }
+
+  function closeScopeModal() {
+    if (!scopeModal) return;
+    scopeModal.classList.remove("is-open");
+    scopeModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("scope-modal-open");
+    if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === "function") {
+      lastFocusedBeforeModal.focus();
+    }
+  }
+
+  if (scopeModalOpen) {
+    scopeModalOpen.addEventListener("click", openScopeModal);
+  }
+
+  if (scopeModalClose) {
+    scopeModalClose.addEventListener("click", closeScopeModal);
+  }
+
+  if (scopeModal) {
+    scopeModal.addEventListener("click", function (event) {
+      if (event.target && event.target.hasAttribute("data-close-scope")) {
+        closeScopeModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && scopeModal && scopeModal.classList.contains("is-open")) {
+      closeScopeModal();
+    }
+  });
+
+  initializeOptions();
+});
+</script>
+```
+
+::: {.last-updated}
+If you are setting this up for the first time, follow the Apps Script instructions in `README.md`.
+:::

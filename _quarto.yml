@@ -9,6 +9,8 @@ website:
     left:
       - text: "Dashboard"
         href: index.qmd
+      - text: "Submit Resource"
+        href: submit.qmd
       - text: "About"
         href: about.qmd
 
