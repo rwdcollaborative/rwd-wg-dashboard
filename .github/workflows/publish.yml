@@ -42,6 +42,7 @@ jobs:
           packages: |
             any::tidyverse
             any::googlesheets4
+            any::googledrive
             any::plotly
             any::DT
             any::scales

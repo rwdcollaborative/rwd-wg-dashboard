@@ -46,10 +46,11 @@ This dashboard visualizes the RWD Working Group resource inventory collected as 
 
 To add resources to the inventory:
 
-1. Visit the [Google Sheets inventory](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit)
-2. Follow the instructions in the "Instructions" tab
-3. Add your resource information to the "Inventory" tab
-4. The dashboard will automatically reflect your additions on the next page load
+1. Open the [Submit Resource](submit.qmd) page and complete the form.
+2. Submit your resource.
+3. The dashboard will reflect additions on the next page load.
+
+You can still add entries directly in the [Google Sheets inventory](https://docs.google.com/spreadsheets/d/1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s/edit) if needed.
 
 ### Technology Stack
 
@@ -57,6 +58,14 @@ To add resources to the inventory:
 - **R**: Statistical computing and graphics (googlesheets4, plotly, dplyr, DT)
 - **GitHub Pages**: Free, reliable static site hosting
 - **GitHub Actions**: Automated deployment
+
+---
+
+## Changelog
+
+- **2026-02-18**: Added a guided submission form with validation and Google Apps Script writeback.
+- **2026-02-18**: Added field-level help icons and inventory scope modal content for submitters.
+- **2026-02-18**: Added a first-visit welcome modal on the dashboard with `?showIntro=1` override support.
 
 ---
 

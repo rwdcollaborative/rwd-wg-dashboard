@@ -36,7 +36,7 @@ check-deps:
 install:
 	@echo "Installing R packages..."
 	@echo "This may take 2-5 minutes..."
-	@R -e 'packages <- c("googlesheets4", "dplyr", "ggplot2", "plotly", "lubridate", "tidyr", "scales", "DT", "rmarkdown", "knitr", "RColorBrewer"); new_packages <- packages[!(packages %in% installed.packages()[,"Package"])]; if(length(new_packages)) install.packages(new_packages, repos="https://cloud.r-project.org"); cat("\n✅ All R packages installed!\n")'
+	@R -e 'packages <- c("googlesheets4", "googledrive", "httr2", "cellranger", "dplyr", "ggplot2", "plotly", "lubridate", "tidyr", "scales", "DT", "rmarkdown", "knitr", "RColorBrewer"); new_packages <- packages[!(packages %in% installed.packages()[,"Package"])]; if(length(new_packages)) install.packages(new_packages, repos="https://cloud.r-project.org"); cat("\n✅ All R packages installed!\n")'
 
 # Start live preview server with auto-reload
 preview:
@@ -68,4 +68,3 @@ clean:
 	rm -rf _site/
 	rm -rf .quarto/
 	@echo "✅ Clean complete!"
-
