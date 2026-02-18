@@ -64,11 +64,17 @@ You can still add entries directly in the [Google Sheets inventory](https://docs
 ## Changelog
 
 - **2026-02-18**: Added a guided submission form with validation and Google Apps Script writeback.
-- **2026-02-18**: Added field-level help icons and inventory scope modal content for submitters.
-- **2026-02-18**: Added a first-visit welcome modal on the dashboard with `?showIntro=1` override support.
+- **2026-02-18**: Added per-record metadata capture for date created and date last updated.
+- **2026-02-18**: Added GitHub actions dead link checker (runs daily) and link status in table view.
+
 
 ---
 
 *Dashboard maintained by the CTSA RWD Working Group*
 
 *Working group information from [CTSA CCOS](https://ccos-cc.ctsa.io/groups/working-groups/real-world-data-workforce-development-across-the-translational-spectrum)*
+
+
+::: {.last-updated}
+Dashboard created by Shawn T. O'Neil, shawn@tislab.org
+:::

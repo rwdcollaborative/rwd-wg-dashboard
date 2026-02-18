@@ -52,7 +52,7 @@ format:
     <p class="section-help">While not required, we recommend including the following information to aid in organization and discovery.</p>
     <div class="form-grid">
       <div class="form-group">
-        <label for="type">Type <span class="info-icon" tabindex="0" data-tooltip="The 'type' of the entry. You may select more than one." aria-label="More information about Type">i</span></label>
+        <label for="type">Resource Type <span class="info-icon" tabindex="0" data-tooltip="The 'type' of the entry. You may select more than one. If none apply, or an additional type description is appropriate, enter that in the next column to the right.<br /><br />Initiatives refer to any structured learning activity or program focused on collecting, using or maintaining RWD, such as seminars, workshops, tutorials, coding hackathons, conferences, and courses, intended to build knowledge and skills.<br /><br />Artifacts are smaller, individual resources that may be useful in an educational initiative. Examples may include videos, websites, datasets, or similar. Artifacts may also be individual components from an initiative available for re-use in other contexts. The type of artifact can be indicated in the Artifacts field." aria-label="More information about Type">i</span></label>
         <details class="multi-select-dropdown" open>
           <summary><span class="multi-select-summary" id="type-summary">Select one or more</span></summary>
           <div class="multi-select-panel">
@@ -68,7 +68,7 @@ format:
       </div>
 
       <div class="form-group">
-        <label for="topic">Topic <span class="info-icon" tabindex="0" data-tooltip="Topics covered by the asset. Select all that apply." aria-label="More information about Topic">i</span></label>
+        <label for="topic">Resource Topic <span class="info-icon" tabindex="0" data-tooltip="Topics covered by the asset. Select all that apply." aria-label="More information about Topic">i</span></label>
         <details class="multi-select-dropdown" open>
           <summary><span class="multi-select-summary" id="topic-summary">Select one or more</span></summary>
           <div class="multi-select-panel">
@@ -121,8 +121,8 @@ format:
 
   <details class="section-block optional-section">
     <summary>4. Optional Details (Click to Expand)</summary>
+    <p class="section-help">You are welcome to provide additional information about the resource if known.</p>
     <div class="form-grid optional-grid">
-      <p class="section-help">You are welcome to provide additional information about the resource if known.</p>
       <div class="form-group">
         <label for="intended-audience">Intended Audience <span class="info-icon" tabindex="0" data-tooltip="The intended audience for the asset, if known. Select all that apply." aria-label="More information about Intended Audience">i</span></label>
         <details class="multi-select-dropdown" open>
@@ -231,6 +231,23 @@ format:
     </dl>
   </div>
 </div>
+
+<div class="submission-modal" id="submission-modal" aria-hidden="true">
+  <div class="submission-modal-backdrop" data-close-submit></div>
+  <div class="submission-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="submission-modal-title">
+    <button type="button" class="submission-modal-close" id="submission-modal-close" aria-label="Close">×</button>
+    <h2 id="submission-modal-title">Submitting Resource</h2>
+    <div class="submission-modal-processing" id="submission-modal-processing" aria-hidden="true">
+      <span class="submission-spinner" aria-hidden="true"></span>
+      <span>Processing submission...</span>
+    </div>
+    <p id="submission-modal-message">Please wait while your resource is submitted.</p>
+    <p id="submission-modal-lock-note" class="submission-modal-lock-note" aria-live="polite"></p>
+    <div class="submission-modal-actions">
+      <button type="button" id="submission-modal-action" class="btn btn-primary">Submit Another</button>
+    </div>
+  </div>
+</div>
 ```
 :::
 
@@ -272,7 +289,30 @@ document.addEventListener("DOMContentLoaded", function () {
   const scopeModal = document.getElementById("scope-modal");
   const scopeModalOpen = document.getElementById("scope-modal-open");
   const scopeModalClose = document.getElementById("scope-modal-close");
+  const submissionModal = document.getElementById("submission-modal");
+  const submissionModalClose = document.getElementById("submission-modal-close");
+  const submissionModalTitle = document.getElementById("submission-modal-title");
+  const submissionModalMessage = document.getElementById("submission-modal-message");
+  const submissionModalAction = document.getElementById("submission-modal-action");
+  const submissionModalProcessing = document.getElementById("submission-modal-processing");
+  const submissionModalLockNote = document.getElementById("submission-modal-lock-note");
+  let submissionInFlight = false;
+  let lockNoteTimer = null;
   let lastFocusedBeforeModal = null;
+
+  function normalizeInfoTooltips() {
+    const icons = document.querySelectorAll(".info-icon[data-tooltip]");
+    icons.forEach(function (icon) {
+      const raw = String(icon.getAttribute("data-tooltip") || "");
+      if (!raw) return;
+      const normalized = raw
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/&lt;br\s*\/?&gt;/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ");
+      icon.setAttribute("data-tooltip", normalized);
+    });
+  }
 
   function normalizeHeader(name) {
     return String(name || "")
@@ -563,31 +603,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return { ok: false, message: "Title is required." };
     }
 
-    const urlCheck = getUrlValidationState(trimValue("urls"));
-    if (urlCheck.state === "missing") {
-      return { ok: false, message: "Please enter at least one URL." };
-    }
-    if (urlCheck.state === "invalid") {
-      const firstInvalid = urlCheck.invalid && urlCheck.invalid.length > 0 ? urlCheck.invalid[0] : "URL";
-      return { ok: false, message: "Invalid URL detected: " + firstInvalid + ". Use full http(s) URLs with a public domain (e.g., .org, .com)." };
-    }
-
-    for (let i = 0; i < optionBindings.length; i += 1) {
-      const binding = optionBindings[i];
-      const otherValue = trimValue(binding.otherInputId);
-      if (hasOtherSelected(binding.fieldId) && !otherValue) {
-        const label = binding.optionKey;
-        return { ok: false, message: "Please fill '" + label + " -> Other' details." };
-      }
-    }
-
-    if (record["Contributor Email"]) {
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(record["Contributor Email"])) {
-        return { ok: false, message: "Contributor Email is not valid." };
-      }
-    }
-
     return { ok: true, message: "" };
   }
 
@@ -608,6 +623,58 @@ document.addEventListener("DOMContentLoaded", function () {
   function setSubmitting(isSubmitting) {
     submitButton.disabled = isSubmitting;
     submitButton.textContent = isSubmitting ? "Submitting..." : "Submit Resource";
+  }
+
+  function showSubmissionLockNote() {
+    if (!submissionModalLockNote) return;
+    submissionModalLockNote.textContent = "Submission is still processing. Please wait.";
+    if (lockNoteTimer) clearTimeout(lockNoteTimer);
+    lockNoteTimer = setTimeout(function () {
+      submissionModalLockNote.textContent = "";
+    }, 1800);
+  }
+
+  function openSubmissionModal(config) {
+    if (!submissionModal) return;
+    const title = String((config && config.title) || "Submitting Resource");
+    const message = String((config && config.message) || "");
+    const actionLabel = String((config && config.actionLabel) || "Close");
+    const showAction = Boolean(config && config.showAction);
+    submissionInFlight = Boolean(config && config.inFlight);
+
+    submissionModalTitle.textContent = title;
+    submissionModalMessage.textContent = message;
+    submissionModalAction.textContent = actionLabel;
+    submissionModalAction.hidden = !showAction;
+    submissionModalProcessing.hidden = !submissionInFlight;
+    submissionModalProcessing.setAttribute("aria-hidden", submissionInFlight ? "false" : "true");
+    submissionModalClose.disabled = submissionInFlight;
+    submissionModal.classList.toggle("is-busy", submissionInFlight);
+    submissionModalLockNote.textContent = "";
+
+    submissionModal.classList.add("is-open");
+    submissionModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("submission-modal-open");
+    if (!submissionInFlight && showAction) {
+      submissionModalAction.focus();
+    }
+  }
+
+  function closeSubmissionModal(force) {
+    if (!submissionModal) return;
+    if (!force && submissionInFlight) {
+      showSubmissionLockNote();
+      return;
+    }
+    submissionModal.classList.remove("is-open", "is-busy");
+    submissionModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("submission-modal-open");
+    submissionInFlight = false;
+    if (lockNoteTimer) {
+      clearTimeout(lockNoteTimer);
+      lockNoteTimer = null;
+    }
+    submissionModalLockNote.textContent = "";
   }
 
   async function submitRecord(record) {
@@ -699,19 +766,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     const missingRecommended = missingRecommendedFields();
-    if (missingRecommended.length > 0) {
-      setStatus("Recommended fields are missing: " + missingRecommended.join(", ") + ". Submission can continue.", "status-warning");
-    }
+    const processingMessage = missingRecommended.length > 0
+      ? ("Submitting now. Recommended fields were left blank: " + missingRecommended.join(", ") + ".")
+      : "Submitting your resource. Please wait.";
+
+    openSubmissionModal({
+      title: "Submitting Resource",
+      message: processingMessage,
+      inFlight: true,
+      showAction: false
+    });
 
     setSubmitting(true);
 
     try {
       await submitRecord(record);
-      setStatus("Submission sent successfully. Thank you for contributing.", "status-success");
       form.reset();
       initializeOtherInputToggles();
+      updateRecommendationHints();
+      openSubmissionModal({
+        title: "Submission Complete",
+        message: "Your resource was submitted successfully. Thank you for contributing.",
+        inFlight: false,
+        showAction: true,
+        actionLabel: "Submit Another"
+      });
     } catch (error) {
-      setStatus(error.message || "Submission failed.", "status-error");
+      openSubmissionModal({
+        title: "Submission Failed",
+        message: error.message || "Submission failed.",
+        inFlight: false,
+        showAction: true,
+        actionLabel: "Close"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -782,17 +869,38 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  if (submissionModalClose) {
+    submissionModalClose.addEventListener("click", function () {
+      closeSubmissionModal(false);
+    });
+  }
+
+  if (submissionModalAction) {
+    submissionModalAction.addEventListener("click", function () {
+      closeSubmissionModal(true);
+    });
+  }
+
+  if (submissionModal) {
+    submissionModal.addEventListener("click", function (event) {
+      if (event.target && event.target.hasAttribute("data-close-submit")) {
+        closeSubmissionModal(false);
+      }
+    });
+  }
+
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape" && scopeModal && scopeModal.classList.contains("is-open")) {
       closeScopeModal();
+      return;
+    }
+    if (event.key === "Escape" && submissionModal && submissionModal.classList.contains("is-open")) {
+      closeSubmissionModal(false);
     }
   });
 
   initializeOptions();
+  normalizeInfoTooltips();
 });
 </script>
 ```
-
-::: {.last-updated}
-If you are setting this up for the first time, follow the Apps Script instructions in `README.md`.
-:::

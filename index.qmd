@@ -197,22 +197,22 @@ last_update <- format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")
 
 ::: {.metric-card}
 <div class="metric-label">Total Resources</div>
-<div class="metric-value">`r nrow(data)`</div>
+<div class="metric-value" id="metric-total-resources">`r nrow(data)`</div>
 :::
 
 ::: {.metric-card}
 <div class="metric-label">Organizations</div>
-<div class="metric-value">`r length(unique(data$Organization[!is.na(data$Organization)]))`</div>
+<div class="metric-value" id="metric-organizations">`r length(unique(data$Organization[!is.na(data$Organization)]))`</div>
 :::
 
 ::: {.metric-card}
 <div class="metric-label">RWD Types</div>
-<div class="metric-value">`r length(unique(data$Type[!is.na(data$Type)]))`</div>
+<div class="metric-value" id="metric-rwd-types">`r length(unique(data$Type[!is.na(data$Type)]))`</div>
 :::
 
 ::: {.metric-card}
 <div class="metric-label">RWD Topics</div>
-<div class="metric-value">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
+<div class="metric-value" id="metric-rwd-topics">`r length(unique(unlist(strsplit(paste(data$Topic[!is.na(data$Topic)], collapse = ", "), ", "))))`</div>
 :::
 
 :::
@@ -436,10 +436,10 @@ url_status_chip <- function(x) {
   raw <- tolower(trimws(as.character(x)))
   status <- ifelse(raw %in% c("ok", "dead", "warn"), raw, "unknown")
   label <- dplyr::case_when(
-    status == "ok" ~ "Link Check: OK",
-    status == "dead" ~ "Link Check: Dead",
-    status == "warn" ~ "Link Check: Warn",
-    TRUE ~ "Link Check: Unknown"
+    status == "ok" ~ "Links: OK",
+    status == "dead" ~ "Links: Dead",
+    status == "warn" ~ "Links: Warn",
+    TRUE ~ "Links: Unknown"
   )
   paste0(
     '<span class="url-status-chip status-', status, '" title="', label, '">',
@@ -458,9 +458,57 @@ detail_row_if_present <- function(label, value, empty_text = "Unknown") {
   )
 }
 
+parse_meta_datetime <- function(x) {
+  text <- as.character(x)
+  text[is.na(text) | trimws(text) == ""] <- NA_character_
+  text <- ifelse(grepl("Z$", text), sub("Z$", "+0000", text), text)
+  text <- gsub("([+-][0-9]{2}):([0-9]{2})$", "\\1\\2", text)
+  suppressWarnings(as.POSIXct(
+    text,
+    tz = "UTC",
+    tryFormats = c(
+      "%Y-%m-%dT%H:%M:%OS%z",
+      "%Y-%m-%dT%H:%M:%OS",
+      "%Y-%m-%d %H:%M:%OS",
+      "%Y/%m/%d %H:%M:%OS",
+      "%m/%d/%Y %H:%M:%OS",
+      "%m/%d/%Y %H:%M",
+      "%Y-%m-%d"
+    )
+  ))
+}
+
+combine_latest_datetime <- function(created, updated) {
+  out <- mapply(function(cdt, udt) {
+    vals <- c(cdt, udt)
+    vals <- vals[!is.na(vals)]
+    if (length(vals) == 0) return(NA_real_)
+    as.numeric(max(vals))
+  }, created, updated)
+  as.POSIXct(out, origin = "1970-01-01", tz = "UTC")
+}
+
+render_urls_html <- function(x) {
+  urls <- parse_csv_string(x)
+  urls <- urls[nzchar(trimws(urls))]
+  if (length(urls) == 0) return("Unknown")
+  paste(vapply(urls, function(url) {
+    safe <- as.character(htmltools::htmlEscape(url))
+    sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>', safe, safe)
+  }, character(1)), collapse = "<br>")
+}
+
 # Build compact rows plus expandable details
 data_display <- data %>%
   mutate(
+    Created_Parsed = parse_meta_datetime(`Meta Created At`),
+    Updated_Parsed = parse_meta_datetime(`Meta Updated At`),
+    Date_Added_Parsed = combine_latest_datetime(Created_Parsed, Updated_Parsed),
+    Date_Added = ifelse(
+      is.na(Date_Added_Parsed),
+      "Unknown",
+      format(with_tz(Date_Added_Parsed, tzone = sheet_tz), "%Y-%m-%d")
+    ),
     First_URL = vapply(`URL(s)`, function(x) {
       parsed <- parse_csv_string(x)
       if (length(parsed) > 0) parsed[[1]] else NA_character_
@@ -479,21 +527,13 @@ data_display <- data %>%
       '<span class="meta-chip">Availability: ', safe_text(Availability), '</span>',
       '</div>'
     ),
-    Actions = ifelse(
-      !is.na(First_URL) & First_URL != "",
-      sprintf('<a href="%s" target="_blank" rel="noopener noreferrer">Open</a>', htmltools::htmlEscape(First_URL)),
-      ""
-    ),
     Details = paste0(
       '<div class="resource-details">',
       '<div class="detail-row"><span class="detail-label">Topic</span><span class="detail-value">', safe_text(Topic), '</span></div>',
       '<div class="detail-row"><span class="detail-label">Description</span><span class="detail-value">', safe_text(Description), '</span></div>',
       '<div class="detail-row"><span class="detail-label">RWD Type</span><span class="detail-value">', safe_text(`RWD Type`), '</span></div>',
       '<div class="detail-row"><span class="detail-label">Intended Audience</span><span class="detail-value">', safe_text(`Intended Audience`), '</span></div>',
-      '<div class="detail-row"><span class="detail-label">All URLs</span><span class="detail-value">', safe_text(`URL(s)`), '</span></div>',
-      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Status", `Meta URL Status`[[i]]), character(1)),
-      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Time", `Meta URL Checked At`[[i]]), character(1)),
-      vapply(seq_along(Title), function(i) detail_row_if_present("Link Check Detail", `Meta URL Check Detail`[[i]]), character(1)),
+      '<div class="detail-row"><span class="detail-label">URLs</span><span class="detail-value">', vapply(`URL(s)`, render_urls_html, character(1)), '</span></div>',
       vapply(seq_along(Title), function(i) detail_row_if_present("Created", `Meta Created At`[[i]]), character(1)),
       vapply(seq_along(Title), function(i) detail_row_if_present("Last Updated", `Meta Updated At`[[i]]), character(1)),
       '</div>'
@@ -502,7 +542,7 @@ data_display <- data %>%
   transmute(
     Title = Title_Cell,
     Organization = safe_text(Organization),
-    Actions = Actions,
+    `Date Added` = Date_Added,
     Type = safe_text(Type),
     Availability = safe_text(Availability),
     `RWD Type` = safe_text(`RWD Type`),
@@ -525,9 +565,9 @@ datatable(
     scrollCollapse = TRUE,
     order = list(list(1, "asc"), list(0, "asc")),
     columnDefs = list(
-      list(width = '55%', targets = 0),
-      list(width = '28%', targets = 1),
-      list(width = '7%', targets = 2),
+      list(width = '54%', targets = 0),
+      list(width = '26%', targets = 1),
+      list(width = '10%', targets = 2),
       list(visible = FALSE, targets = c(3, 4, 5, 6, 7))
     )
   ),
@@ -549,10 +589,260 @@ datatable(
   filter = "top",
   class = 'cell-border stripe hover compact inventory-table',
   rownames = FALSE,
-  colnames = c('Title', 'Organization', 'Open', 'Type', 'Availability', 'RWD Type', 'Topic', 'Details')
+  colnames = c('Title', 'Organization', 'Date Added', 'Type', 'Availability', 'RWD Type', 'Topic', 'Details')
 )
 ```
 :::
+
+```{=html}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const SHEET_ID = "1L8VTkbA0bsEYAceLyYebYPxwETYyF2jzdvoCuqibE-s";
+  const SHEET_NAME = "Inventory";
+  const GVIZ_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+    "/gviz/tq?sheet=" + encodeURIComponent(SHEET_NAME) +
+    "&range=A2:ZZ&tq=&tqx=out:json";
+
+  const metricTotal = document.getElementById("metric-total-resources");
+  const metricOrg = document.getElementById("metric-organizations");
+  const metricType = document.getElementById("metric-rwd-types");
+  const metricTopic = document.getElementById("metric-rwd-topics");
+
+  function parseGvizJson(text) {
+    const start = text.indexOf("(");
+    const end = text.lastIndexOf(")");
+    if (start === -1 || end === -1 || end <= start) throw new Error("Invalid GViz response");
+    return JSON.parse(text.slice(start + 1, end));
+  }
+
+  function normalizeHeader(name) {
+    return String(name || "").toLowerCase().replace(/\s+/g, " ").trim();
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function safeText(value, emptyText) {
+    const text = String(value == null ? "" : value).trim();
+    if (!text) return escapeHtml(emptyText || "Not provided");
+    return escapeHtml(text);
+  }
+
+  function parseCsvLike(value) {
+    const raw = String(value == null ? "" : value).trim();
+    if (!raw) return [];
+    return raw
+      .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+      .map(function (part) { return part.replace(/^\s*"?|"?\s*$/g, "").replace(/\\"/g, "\"").trim(); })
+      .filter(Boolean);
+  }
+
+  function parseTimestamp(value) {
+    const text = String(value == null ? "" : value).trim();
+    if (!text) return null;
+    const gvizDate = text.match(/^Date\((.+)\)$/);
+    if (gvizDate) {
+      const parts = gvizDate[1].split(",").map(function (x) { return parseInt(x.trim(), 10); });
+      if (parts.length >= 3 && parts.every(function (x) { return !isNaN(x); })) {
+        return new Date(Date.UTC(parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0));
+      }
+    }
+    const parsed = new Date(text);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function statusLabel(status) {
+    if (status === "ok") return "Links: OK";
+    if (status === "dead") return "Links: Dead";
+    if (status === "warn") return "Links: Warn";
+    return "Links: Unknown";
+  }
+
+  function statusChipHtml(statusRaw) {
+    const s = (statusRaw === "ok" || statusRaw === "dead" || statusRaw === "warn") ? statusRaw : "unknown";
+    return "<span class=\"url-status-chip status-" + s + "\" title=\"" + statusLabel(s) + "\"><span class=\"url-status-dot\"></span>" + statusLabel(s) + "</span>";
+  }
+
+  function renderUrlsHtml(raw) {
+    const urls = parseCsvLike(raw);
+    if (!urls.length) return "Unknown";
+    return urls.map(function (u) {
+      const safe = escapeHtml(u);
+      return "<a href=\"" + safe + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + safe + "</a>";
+    }).join("<br>");
+  }
+
+  function firstUrl(raw) {
+    const urls = parseCsvLike(raw);
+    return urls.length ? urls[0] : "";
+  }
+
+  function buildDetails(record) {
+    return [
+      "<div class=\"resource-details\">",
+      "<div class=\"detail-row\"><span class=\"detail-label\">Topic</span><span class=\"detail-value\">" + safeText(record.topic) + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">Description</span><span class=\"detail-value\">" + safeText(record.description) + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">RWD Type</span><span class=\"detail-value\">" + safeText(record.rwdType) + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">Intended Audience</span><span class=\"detail-value\">" + safeText(record.intendedAudience) + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">URLs</span><span class=\"detail-value\">" + renderUrlsHtml(record.urls) + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">Created</span><span class=\"detail-value\">" + safeText(record.metaCreated, "Unknown") + "</span></div>",
+      "<div class=\"detail-row\"><span class=\"detail-label\">Last Updated</span><span class=\"detail-value\">" + safeText(record.metaUpdated, "Unknown") + "</span></div>",
+      "</div>"
+    ].join("");
+  }
+
+  function getDataTable() {
+    if (!(window.jQuery && jQuery.fn.dataTable)) return null;
+    const selector = "#resource-table table.dataTable";
+    if (jQuery.fn.dataTable.isDataTable(selector)) return jQuery(selector).DataTable();
+    const fallback = jQuery("#resource-table table");
+    if (fallback.length && jQuery.fn.dataTable.isDataTable(fallback[0])) return jQuery(fallback[0]).DataTable();
+    return null;
+  }
+
+  function colIndexMap(headers) {
+    const normalized = headers.map(normalizeHeader);
+    function idx(name) { return normalized.indexOf(normalizeHeader(name)); }
+    return {
+      title: idx("Title"),
+      type: idx("Type"),
+      topic: idx("Topic"),
+      organization: idx("Organization"),
+      rwdType: idx("RWD Type"),
+      urls: idx("URL(s)"),
+      description: idx("Description"),
+      intendedAudience: idx("Intended Audience"),
+      availability: idx("Availability"),
+      metaCreated: idx("Meta Created At"),
+      metaUpdated: idx("Meta Updated At"),
+      metaUrlStatus: idx("Meta URL Status")
+    };
+  }
+
+  fetch(GVIZ_URL)
+    .then(function (response) {
+      if (!response.ok) throw new Error("Failed to load sheet data");
+      return response.text();
+    })
+    .then(function (text) {
+      const parsed = parseGvizJson(text);
+      const table = parsed.table || {};
+      const cols = table.cols || [];
+      const rows = table.rows || [];
+      let headers = cols.map(function (c) { return (c && c.label) ? String(c.label).trim() : ""; });
+      let dataRows = rows;
+
+      if (!headers.some(function (h) { return h; }) && rows.length > 0) {
+        const headerCells = rows[0].c || [];
+        headers = headerCells.map(function (cell, i) {
+          const v = cell && (cell.f !== undefined && cell.f !== null ? cell.f : cell.v);
+          return v === undefined || v === null ? ("Column " + (i + 1)) : String(v).trim();
+        });
+        dataRows = rows.slice(1);
+      }
+
+      const idx = colIndexMap(headers);
+      if (idx.title < 0) return;
+
+      const records = dataRows.map(function (row) {
+        const cells = row && row.c ? row.c : [];
+        function valueAt(i) {
+          if (i < 0 || !cells[i]) return "";
+          const cell = cells[i];
+          const value = (cell.v !== undefined && cell.v !== null) ? cell.v : cell.f;
+          return value == null ? "" : String(value);
+        }
+        return {
+          title: valueAt(idx.title).trim(),
+          type: valueAt(idx.type),
+          topic: valueAt(idx.topic),
+          organization: valueAt(idx.organization),
+          rwdType: valueAt(idx.rwdType),
+          urls: valueAt(idx.urls),
+          description: valueAt(idx.description),
+          intendedAudience: valueAt(idx.intendedAudience),
+          availability: valueAt(idx.availability),
+          metaCreated: valueAt(idx.metaCreated),
+          metaUpdated: valueAt(idx.metaUpdated),
+          metaUrlStatus: valueAt(idx.metaUrlStatus).trim().toLowerCase()
+        };
+      }).filter(function (r) {
+        return r.title && r.title !== "Title";
+      });
+
+      const tableRows = records.map(function (r) {
+        const createdDate = parseTimestamp(r.metaCreated);
+        const updatedDate = parseTimestamp(r.metaUpdated);
+        const latest = [createdDate, updatedDate].filter(Boolean).sort(function (a, b) { return b - a; })[0];
+        const dateAdded = latest ? latest.toISOString().slice(0, 10) : "Unknown";
+        const titleTooltip = r.description && r.description.trim() ? escapeHtml(r.description) : "No description provided";
+        const titleCell = [
+          "<div class=\"inventory-title\" title=\"" + titleTooltip + "\">" + safeText(r.title) + "</div>",
+          "<div class=\"inventory-meta\">",
+          statusChipHtml(r.metaUrlStatus),
+          "<span class=\"meta-chip\">Type: " + safeText(r.type) + "</span>",
+          "<span class=\"meta-chip\">RWD: " + safeText(r.rwdType) + "</span>",
+          "<span class=\"meta-chip\">Availability: " + safeText(r.availability) + "</span>",
+          "</div>"
+        ].join("");
+        return [
+          titleCell,
+          safeText(r.organization),
+          escapeHtml(dateAdded),
+          safeText(r.type),
+          safeText(r.availability),
+          safeText(r.rwdType),
+          safeText(r.topic),
+          buildDetails(r)
+        ];
+      }).sort(function (a, b) {
+        const orgCmp = a[1].localeCompare(b[1]);
+        if (orgCmp !== 0) return orgCmp;
+        return a[0].localeCompare(b[0]);
+      });
+
+      const tableApi = getDataTable();
+      if (tableApi) {
+        tableApi.clear();
+        tableApi.rows.add(tableRows);
+        tableApi.draw(false);
+      }
+
+      if (metricTotal) metricTotal.textContent = String(records.length);
+
+      if (metricOrg) {
+        const orgCount = new Set(records.map(function (r) { return r.organization.trim(); }).filter(Boolean)).size;
+        metricOrg.textContent = String(orgCount);
+      }
+
+      if (metricType) {
+        const typeCount = new Set(records.map(function (r) { return r.type.trim(); }).filter(Boolean)).size;
+        metricType.textContent = String(typeCount);
+      }
+
+      if (metricTopic) {
+        const topics = new Set();
+        records.forEach(function (r) {
+          parseCsvLike(r.topic).forEach(function (t) { topics.add(t); });
+        });
+        metricTopic.textContent = String(topics.size);
+      }
+
+      const clearBtn = document.getElementById("plot-filter-clear");
+      if (clearBtn) clearBtn.click();
+    })
+    .catch(function () {
+      // Keep server-rendered table/metrics as fallback.
+    });
+});
+</script>
+```
 
 ```{=html}
 <script>
@@ -939,10 +1229,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function statusLabel(status) {
-    if (status === "ok") return "Link Check: OK";
-    if (status === "dead") return "Link Check: Dead";
-    if (status === "warn") return "Link Check: Warn";
-    return "Link Check: Unknown";
+    if (status === "ok") return "Links: OK";
+    if (status === "dead") return "Links: Dead";
+    if (status === "warn") return "Links: Warn";
+    return "Links: Unknown";
   }
 
   function makeStatusChip(status) {
@@ -1095,9 +1385,6 @@ document.addEventListener("DOMContentLoaded", function () {
             if (chip) chip.outerHTML = makeStatusChip(meta.status);
             rowData[0] = titleWrap.innerHTML;
 
-            rowData[7] = updateDetailValue(rowData[7], "Link Check Status", meta.status || "Unknown");
-            rowData[7] = updateDetailValue(rowData[7], "Link Check Time", meta.checkedAt || "Unknown");
-            rowData[7] = updateDetailValue(rowData[7], "Link Check Detail", meta.detail || "Unknown");
             table.row(idx).data(rowData);
           });
           table.draw(false);
