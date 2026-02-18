@@ -112,10 +112,17 @@ summarize_row <- function(urls) {
 
   checks <- lapply(urls, check_one_url)
   codes <- vapply(checks, function(x) ifelse(is.null(x$code), NA_integer_, x$code), integer(1))
+  errors <- vapply(checks, function(x) ifelse(is.null(x$error), "", as.character(x$error)), character(1))
   ok <- which(!is.na(codes) & codes >= 200 & codes < 400)
-  dead <- which(!is.na(codes) & codes %in% c(404L, 410L))
+  dns_or_resolution_fail <- which(grepl("resolve host|could not resolve|name resolution|dns", tolower(errors)))
+  dead <- unique(c(
+    which(!is.na(codes) & codes %in% c(404L, 410L)),
+    dns_or_resolution_fail
+  ))
   warn <- which(!is.na(codes) & codes >= 400L & !(codes %in% c(404L, 410L)))
   unknown <- which(is.na(codes))
+  warn <- setdiff(warn, dead)
+  unknown <- setdiff(unknown, dead)
 
   status <- if (length(dead) > 0 && length(ok) == 0 && length(warn) == 0 && length(unknown) == 0) {
     "dead"

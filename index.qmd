@@ -501,6 +501,7 @@ render_urls_html <- function(x) {
 # Build compact rows plus expandable details
 data_display <- data %>%
   mutate(
+    Sheet_Row_Order = row_number(),
     Created_Parsed = parse_meta_datetime(`Meta Created At`),
     Updated_Parsed = parse_meta_datetime(`Meta Updated At`),
     Date_Added_Parsed = combine_latest_datetime(Created_Parsed, Updated_Parsed),
@@ -540,6 +541,8 @@ data_display <- data %>%
     )
   ) %>%
   transmute(
+    Sheet_Row_Order,
+    Date_Added_Parsed,
     Title = Title_Cell,
     Organization = safe_text(Organization),
     `Date Added` = Date_Added,
@@ -549,7 +552,8 @@ data_display <- data %>%
     Topic = safe_text(Topic),
     Details
   ) %>%
-  arrange(Organization, Title)
+  arrange(is.na(Date_Added_Parsed), desc(Date_Added_Parsed), desc(Sheet_Row_Order)) %>%
+  select(-Sheet_Row_Order, -Date_Added_Parsed)
 
 datatable(
   data_display,
@@ -563,7 +567,7 @@ datatable(
     scrollX = TRUE,
     scrollY = "560px",
     scrollCollapse = TRUE,
-    order = list(list(1, "asc"), list(0, "asc")),
+    order = list(),
     columnDefs = list(
       list(width = '54%', targets = 0),
       list(width = '26%', targets = 1),
@@ -776,7 +780,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return r.title && r.title !== "Title";
       });
 
-      const tableRows = records.map(function (r) {
+      const tableRows = records.map(function (r, idx) {
         const createdDate = parseTimestamp(r.metaCreated);
         const updatedDate = parseTimestamp(r.metaUpdated);
         const latest = [createdDate, updatedDate].filter(Boolean).sort(function (a, b) { return b - a; })[0];
@@ -791,21 +795,30 @@ document.addEventListener("DOMContentLoaded", function () {
           "<span class=\"meta-chip\">Availability: " + safeText(r.availability) + "</span>",
           "</div>"
         ].join("");
-        return [
-          titleCell,
-          safeText(r.organization),
-          escapeHtml(dateAdded),
-          safeText(r.type),
-          safeText(r.availability),
-          safeText(r.rwdType),
-          safeText(r.topic),
-          buildDetails(r)
-        ];
+        return {
+          row: [
+            titleCell,
+            safeText(r.organization),
+            escapeHtml(dateAdded),
+            safeText(r.type),
+            safeText(r.availability),
+            safeText(r.rwdType),
+            safeText(r.topic),
+            buildDetails(r)
+          ],
+          latest: latest,
+          rowOrder: idx
+        };
       }).sort(function (a, b) {
-        const orgCmp = a[1].localeCompare(b[1]);
-        if (orgCmp !== 0) return orgCmp;
-        return a[0].localeCompare(b[0]);
-      });
+        const aHasDate = !!a.latest;
+        const bHasDate = !!b.latest;
+        if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+        if (aHasDate && bHasDate) {
+          const dateDiff = b.latest - a.latest;
+          if (dateDiff !== 0) return dateDiff;
+        }
+        return b.rowOrder - a.rowOrder;
+      }).map(function (x) { return x.row; });
 
       const tableApi = getDataTable();
       if (tableApi) {
